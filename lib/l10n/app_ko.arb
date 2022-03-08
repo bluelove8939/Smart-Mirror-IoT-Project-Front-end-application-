@@ -1,0 +1,36 @@
+{
+  "weatherLangCode": "kr",
+  "fullLocale": "ko_KR",
+
+  "homePageTitle": "스마트 미러 시스템",
+  "homePageDashboardTitle": "대시보드",
+  "homePageActionTooltip": "장치 추가",
+  "homePageRefreshTooltip": "새로고침",
+
+  "weatherMinTemp": "최소",
+  "weatherMaxTemp": "최대",
+  "weatherFeelsLike": "체감",
+  "weatherHumidity": "습도",
+
+  "smartMirrorSettingMenu": "스마트 미러 환경설정",
+
+  "settingsMenuTitle": "환경설정",
+  "settingsTheme": "테마",
+  "settingsAutoSync": "자동 동기화",
+  "settingsActivated": "활성화",
+  "settingsDeactivated": "비활성화",
+  "settingsActivationDialogContent": "활성화 하시겠습니까?",
+  "settingsDeactivationDialogContent": "비활성화 하시겠습니까?",
+
+  "warningsUserAccountNotAuthenticated": "로그인 되지 않음",
+  "warningsDeviceNotDetected": "기기가 감지되지 않음",
+
+  "errorsInvokeWeather": "날씨 데이터를 불러올 수 없습니다",
+
+  "msgRestartToSaveSettings": "변경 사항을 저장하기 위해 앱을 재시작하세요",
+
+  "red": "빨강",
+  "yellow": "노랑",
+  "dark": "다크",
+  "light": "라이트"
+}

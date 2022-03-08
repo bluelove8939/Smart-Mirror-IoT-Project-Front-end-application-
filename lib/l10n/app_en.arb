@@ -1,0 +1,36 @@
+{
+  "weatherLangCode": "en",
+  "fullLocale": "en_US",
+
+  "homePageTitle": "Smart Mirror System",
+  "homePageDashboardTitle": "Dashboard",
+  "homePageActionTooltip": "Add device",
+  "homePageRefreshTooltip": "Refresh data",
+
+  "weatherMinTemp": "min",
+  "weatherMaxTemp": "max",
+  "weatherFeelsLike": "feels like",
+  "weatherHumidity": "Humidity",
+
+  "smartMirrorSettingMenu": "Smart Mirror Settings",
+
+  "settingsMenuTitle": "Settings",
+  "settingsTheme": "Theme",
+  "settingsAutoSync": "Auto synchronization",
+  "settingsActivated": "Activated",
+  "settingsDeactivated": "Deactivated",
+  "settingsActivationDialogContent": "Do you want to activate?",
+  "settingsDeactivationDialogContent": "Do you want to deactivate?",
+
+  "warningsUserAccountNotAuthenticated": "User account not authenticated",
+  "warningsDeviceNotDetected": "Target device not detected",
+
+  "errorsInvokeWeather": "Cannot invoke weather data",
+
+  "msgRestartToSaveSettings": "Restart to save the change",
+
+  "red": "Red",
+  "yellow": "Yellow",
+  "dark": "Dark",
+  "light": "Light"
+}
