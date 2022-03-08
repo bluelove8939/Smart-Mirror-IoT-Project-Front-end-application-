@@ -68,7 +68,7 @@ Future<void> saveSettings(Map<String, String> settingsContent) async {
  */
 
 class WeatherDataDownloader {
-  final _weatherApiKey = 'bfbfaac336f64b9f2b20f8b1bb583e56';
+  final _weatherApiKey = 'api Key';
 
 
   // Reference code from geoLocator package (identifies current positions)
