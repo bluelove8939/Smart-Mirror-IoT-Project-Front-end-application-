@@ -99,7 +99,6 @@ Future<void> saveSettings(Map<String, String> settingsContent) async {
 class WeatherDataDownloader {
   String? _weatherApiKey;
 
-
   // Reference code from geoLocator package (identifies current positions)
   Future<LocationData> determinePosition() async {
     Location location = Location();
@@ -128,7 +127,6 @@ class WeatherDataDownloader {
 
     return _locationData;
   }
-
 
   Future<Map> refreshWeather({String langCode = 'en', String locale = 'en_US'}) async {
     if (_weatherApiKey == null) {

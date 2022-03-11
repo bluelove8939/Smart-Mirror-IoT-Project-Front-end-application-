@@ -51,6 +51,15 @@ void showToastMessage(String msg) {
 }
 
 
+/*
+ * Main app widget
+ *
+ * Note:
+ *   Theme of the applicaiton is initially defined here
+ *   Basically this applicaiton uses named-routes
+ *   (Define the name of the route to add pages)
+ */
+
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
 
@@ -82,6 +91,11 @@ class App extends StatelessWidget {
   }
 }
 
+
+/*
+ * Homepage of the applicaiton
+ *   Notify some information (weather, schedules, google account info...)
+ */
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -363,6 +377,11 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+
+/*
+ * Settings widget
+ *   Changes application settings
+ */
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
