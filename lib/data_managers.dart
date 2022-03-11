@@ -2,9 +2,10 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;  // read assets text file
 
 
 /*
@@ -19,7 +20,35 @@ Future<String> applicationDirectoryPath() async {
 
 
 /*
- * Methods for read and save settings
+ * Methods for reading API keys
+ *   - readApikeys: read API keys from File object storing API keys
+ *
+ * Note:
+ *   To use some apis supported, you should manually add apikeys.txt to
+ *   'assets/keys/' directory.
+ *
+ * Keys to add:
+ *   - openweathermap
+ */
+
+Future<Map<String, String>> readApikeys() async {
+  try {
+    String content = await rootBundle.loadString('assets/keys/apikeys.txt');
+    Map<String, String> parsedContent = {};
+    for (String line in content.split('\n')) {
+      List<String> commaParsed = line.split(',');
+      parsedContent[commaParsed[0]] = commaParsed[1];
+    }
+    return parsedContent;
+  } catch (e) {
+    print('Cannot read apikeys file ($e)');
+    return {};
+  }
+}
+
+
+/*
+ * Methods for reading and saving settings
  *   - settingsFile: returns File object for read and save application settings
  *   - readSettings: read application settings from settings File object
  *   - saveSettings: save application settings to settings File object
@@ -68,41 +97,45 @@ Future<void> saveSettings(Map<String, String> settingsContent) async {
  */
 
 class WeatherDataDownloader {
-  final _weatherApiKey = 'api Key';
+  String? _weatherApiKey;
 
 
   // Reference code from geoLocator package (identifies current positions)
-  Future<Position> determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<LocationData> determinePosition() async {
+    Location location = Location();
 
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
-    }
+    bool _serviceEnabled;
+    PermissionStatus _permissionGranted;
+    LocationData _locationData;
 
-    // Get permission from device
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return Future.error('location service disabled');
       }
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error('Location permissions are permanently denied, we cannot request permissions.');
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return Future.error('location permission denied');
+      }
     }
 
-    var currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    print(currentPosition);
-    return currentPosition;
+    _locationData = await location.getLocation();
+
+    return _locationData;
   }
 
 
   Future<Map> refreshWeather({String langCode = 'en', String locale = 'en_US'}) async {
-    print(locale);
+    if (_weatherApiKey == null) {
+      Map apikeys = await readApikeys();
+      _weatherApiKey = apikeys['openweathermap'];
+    }
+
     var currentPosition = await determinePosition();
     String lat = currentPosition.latitude.toString();
     String lon = currentPosition.longitude.toString();

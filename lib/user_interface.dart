@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 Container(
-                  height: 150,
+                  height: 160,
                   margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
