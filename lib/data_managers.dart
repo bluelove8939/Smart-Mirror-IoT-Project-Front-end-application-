@@ -52,12 +52,20 @@ Future<Map<String, String>> readApikeys() async {
 
 /*
  * Methods for reading and saving settings
- *   - settingsFile: returns File object for read and save application settings
- *   - readSettings: read application settings from settings File object
- *   - saveSettings: save application settings to settings File object
+ *   - settingsFile:
+ *       returns File object for read and save application settings
+ *   - readSettings:
+ *       read application settings from settings File object
+ *   - saveSettings:
+ *       save application settings to settings File object
+ *
+ * Application settings:
+ *   - defaultApplicationSettings:
+ *       default settings
+ *   - applicationSettings:
+ *       actual application settings (needs to be initialized in main function)
  */
 
-// Default application settings
 Map<String, String> defaultApplicationSettings = {
   'userName': 'default',
   'email': 'default',
@@ -66,7 +74,6 @@ Map<String, String> defaultApplicationSettings = {
   'autoSyncActivated': 'false'
 };
 
-// Application settings (change application settings before running the app, especially main function)
 Map<String, String> applicationSettings = {};
 
 Future<File> settingsFile() async {
