@@ -26,19 +26,6 @@ BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();
 
 
-// Default application settings
-Map<String, String> defaultApplicationSettings = {
-  'userName': 'default',
-  'email': 'default',
-  'profileImageUrl': 'default',
-  'themeName': 'red',
-  'autoSyncActivated': 'false'
-};
-
-// Application settings (change application settings before running the app, especially main function)
-Map<String, String> applicationSettings = defaultApplicationSettings;
-
-
 // Toast message method
 void showToastMessage(String msg) {
   Fluttertoast.showToast(
@@ -157,43 +144,54 @@ class _HomePageState extends State<HomePage> {
 
             SliverList(
               delegate: SliverChildListDelegate([
-                Container(
-                  margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                  height: 70,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: dashboardCardBorderRadius,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.all(15),
-                        child: applicationSettings['profileImageUrl'] == 'default' ? CircleAvatar(
-                          child: Icon(
-                            Icons.person,
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
-                          radius: 22,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                        ) : CircleAvatar(
-                          backgroundImage: NetworkImage(
-                            applicationSettings['profileImageUrl']!,
-                          ),
-                          radius: 22,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: () async {
+                    if (isLoginActivated()) {
+                      await logoutActivation();
+                    } else {
+                      await loginActivation();
+                    }
+                    setState(() {});
+                  },
 
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(applicationSettings['userName'] == 'default' ? AppLocalizations.of(context)!.warningsUserAccountNotAuthenticated : applicationSettings['userName']!, style: userNameStyle),
-                          Text(applicationSettings['email'] == 'default' ? 'email@domain.com' : applicationSettings['email']!, style: emailStyle),
-                        ],
-                      )
-                    ],
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                    height: 70,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(15),
+                          child: applicationSettings['profileImageUrl'] == 'default' ? CircleAvatar(
+                            child: Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.tertiary,
+                            ),
+                            radius: 22,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                          ) : CircleAvatar(
+                            backgroundImage: NetworkImage(
+                              applicationSettings['profileImageUrl']!,
+                            ),
+                            radius: 22,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(applicationSettings['userName'] == 'default' ? AppLocalizations.of(context)!.warningsUserAccountNotAuthenticated : applicationSettings['userName']!, style: userNameStyle),
+                            Text(applicationSettings['email'] == 'default' ? 'email@domain.com' : applicationSettings['email']!, style: emailStyle),
+                          ],
+                        )
+                      ],
+                    ),
                   ),
                 ),
 
