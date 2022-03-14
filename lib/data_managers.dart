@@ -58,6 +58,9 @@ Future<Map<String, String>> readApikeys() async {
  *       read application settings from settings File object
  *   - saveSettings:
  *       save application settings to settings File object
+ *   - initializeSettings:
+ *       initialize application settings (main function must call this function
+ *       before running the applicaiton)
  *
  * Application settings:
  *   - defaultApplicationSettings:
@@ -108,6 +111,18 @@ Future<void> saveSettings(Map<String, String> settingsContent) async {
   } catch (e) {
     print('Cannot save settings file ($e)');
     return;
+  }
+}
+
+Future<void> initializeSettings() async {
+  Map<String, String> savedApplicationSettings = await readSettings();
+
+  for (String settingsKey in defaultApplicationSettings.keys) {
+    applicationSettings[settingsKey] = defaultApplicationSettings[settingsKey]!;
+  }
+
+  for (String settingsKey in savedApplicationSettings.keys) {
+    applicationSettings[settingsKey] = savedApplicationSettings[settingsKey]!;
   }
 }
 
@@ -206,6 +221,8 @@ class GoogleAuthClient extends http.BaseClient {
 
 /*
  * Methods for google sign in and drive API manipulation
+ *   - isLoginActivated:
+ *       checks whether login activated
  *   - loginActivation:
  *       google sign in method (generates authenticated google account, http client and  drive api module)
  *       account, client and drive API module are null if user not signed in google service
