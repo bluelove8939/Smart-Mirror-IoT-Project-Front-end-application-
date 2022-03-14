@@ -22,6 +22,10 @@
   "settingsActivationDialogContent": "활성화 하시겠습니까?",
   "settingsDeactivationDialogContent": "비활성화 하시겠습니까?",
 
+  "scheduleMenuTitle": "일정",
+
+  "deviceManagingMenuTitle": "장치 관리자",
+
   "warningsUserAccountNotAuthenticated": "로그인 되지 않음",
   "warningsDeviceNotDetected": "기기가 감지되지 않음",
 

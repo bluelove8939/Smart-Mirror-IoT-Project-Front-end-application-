@@ -74,7 +74,8 @@ Map<String, String> defaultApplicationSettings = {
   'email': 'default',
   'profileImageUrl': 'default',
   'themeName': 'red',
-  'autoSyncActivated': 'false'
+  'autoSyncActivated': 'false',
+  'isLoginInitialized': 'false',
 };
 
 Map<String, String> applicationSettings = {};
@@ -250,6 +251,8 @@ Future<void> loginActivation() async {
     applicationSettings['userName'] = userAccount!.displayName!;
     applicationSettings['email'] = userAccount!.email;
     applicationSettings['profileImageUrl'] = userAccount!.photoUrl!;
+    applicationSettings['isLoginInitialized'] = 'true';
+    await saveSettings(applicationSettings);
   } catch (e) {
     return Future.error('google login activation error occurred ($e)');
   }
@@ -266,6 +269,8 @@ Future<void> logoutActivation() async {
     applicationSettings['userName'] = defaultApplicationSettings['userName']!;
     applicationSettings['email'] = defaultApplicationSettings['email']!;
     applicationSettings['profileImageUrl'] = defaultApplicationSettings['profileImageUrl']!;
+    applicationSettings['isLoginInitialized'] = 'false';
+    await saveSettings(applicationSettings);
   } catch (e) {
     return Future.error('google logout activation error occurred ($e)');
   }

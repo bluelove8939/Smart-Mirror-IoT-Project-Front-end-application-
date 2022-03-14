@@ -69,6 +69,8 @@ class App extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/settings': (context) => const SettingsPage(),
+        '/schedules': (context) => const SchedulePage(),
+        '/deviceManager': (context) => const DeviceManagingPage(),
       },
 
       // application localization
@@ -195,30 +197,37 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                Container(
-                  margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                  height: 70,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: dashboardCardBorderRadius,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.all(15),
-                        child: CircleAvatar(
-                          child: Icon(
-                              Icons.perm_device_info_outlined,
-                              color: Theme.of(context).colorScheme.tertiary
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/deviceManager').then((value) {
+                      setState(() {});
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                    height: 70,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(15),
+                          child: CircleAvatar(
+                            child: Icon(
+                                Icons.perm_device_info_outlined,
+                                color: Theme.of(context).colorScheme.tertiary
+                            ),
+                            radius: 22,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                           ),
-                          radius: 22,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
                         ),
-                      ),
 
-                      Text(AppLocalizations.of(context)!.warningsDeviceNotDetected, style: deviceIdStyle)
-                    ],
+                        Text(AppLocalizations.of(context)!.warningsDeviceNotDetected, style: deviceIdStyle)
+                      ],
+                    ),
                   ),
                 ),
 
@@ -323,15 +332,22 @@ class _HomePageState extends State<HomePage> {
                       ),
                 ),
 
-                Container(
-                  margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                  height: 300,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: dashboardCardBorderRadius,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/schedules').then((value) {
+                      setState(() {});
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                    height: 300,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+                    child: const Text("Schedules and Tasks"),
                   ),
-                  child: const Text("Schedules and Tasks"),
                 ),
 
                 Row(
@@ -632,3 +648,108 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+
+/*
+ * Schedule Page
+ *   Changes today's schedules list
+ */
+
+class SchedulePage extends StatefulWidget {
+  const SchedulePage({Key? key}) : super(key: key);
+
+  @override
+  _SchedulePageState createState() => _SchedulePageState();
+}
+
+class _SchedulePageState extends State<SchedulePage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+
+      body: ScrollConfiguration(
+        behavior: interface_tools.GlowRemovedBehavior(),
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 150.0,
+              backgroundColor: Theme.of(context).colorScheme.background,
+              elevation: 0.0,
+              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+
+              flexibleSpace: FlexibleSpaceBar(
+                centerTitle: true,
+                title: Text(AppLocalizations.of(context)!.scheduleMenuTitle,
+                  style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                ),
+              ),
+            ),
+
+            SliverList(
+              delegate: SliverChildListDelegate([
+
+
+                /* ADD NEW SCHEDULES MANAGING ELEMENT HERE */
+
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/*
+ * Device Managing Page
+ *   Smart mirror managing menu
+ */
+
+class DeviceManagingPage extends StatefulWidget {
+  const DeviceManagingPage({Key? key}) : super(key: key);
+
+  @override
+  _DeviceManagingPageState createState() => _DeviceManagingPageState();
+}
+
+class _DeviceManagingPageState extends State<DeviceManagingPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+
+      body: ScrollConfiguration(
+        behavior: interface_tools.GlowRemovedBehavior(),
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 150.0,
+              backgroundColor: Theme.of(context).colorScheme.background,
+              elevation: 0.0,
+              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+
+              flexibleSpace: FlexibleSpaceBar(
+                centerTitle: true,
+                title: Text(AppLocalizations.of(context)!.deviceManagingMenuTitle,
+                  style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                ),
+              ),
+            ),
+
+            SliverList(
+              delegate: SliverChildListDelegate([
+
+
+                /* ADD NEW DEVICE MANAGING ELEMENT HERE */
+
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

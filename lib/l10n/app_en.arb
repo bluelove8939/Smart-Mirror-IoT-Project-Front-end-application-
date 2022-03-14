@@ -22,6 +22,10 @@
   "settingsActivationDialogContent": "Do you want to activate?",
   "settingsDeactivationDialogContent": "Do you want to deactivate?",
 
+  "scheduleMenuTitle": "Schedules",
+
+  "deviceManagingMenuTitle": "Device Managers",
+
   "warningsUserAccountNotAuthenticated": "User account not authenticated",
   "warningsDeviceNotDetected": "Target device not detected",
 
