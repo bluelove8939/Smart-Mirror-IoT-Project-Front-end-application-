@@ -317,7 +317,7 @@ const String scheduleDirName = "Schedules";  // Schedule directory name
 const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
 const String textContentType = "text/plain; charset=UTF-8";  // Text file mimetype (encoded as UTF-8)
 
-class ScheduleDownloader {
+class ScheduleManager {
   Future<String> findScheduleDirID() async {
     try {
       String? rootDirID;      // root directory ID
@@ -415,7 +415,7 @@ class ScheduleDownloader {
 
       // Transfer encoded content via Google drive API
       Stream<List<int>> mediaStream = Future.value(encodedContents).asStream().asBroadcastStream();
-      var media = drive.Media(mediaStream, encodedContents.length, contentType: "text/plain; charset=UTF-8");
+      var media = drive.Media(mediaStream, encodedContents.length, contentType: textContentType);
       final result = await driveApi!.files.create(targetFile, uploadMedia: media,);
 
       print("Backup file ${targetFile.name} as file id  ${result.id}");
