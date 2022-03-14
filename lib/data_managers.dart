@@ -125,6 +125,10 @@ Future<void> initializeSettings() async {
   for (String settingsKey in savedApplicationSettings.keys) {
     applicationSettings[settingsKey] = savedApplicationSettings[settingsKey]!;
   }
+
+  if (applicationSettings['isLoginInitialized'] == 'true') {
+    await loginActivation();
+  }
 }
 
 
