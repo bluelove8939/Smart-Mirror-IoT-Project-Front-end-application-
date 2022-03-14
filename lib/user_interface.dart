@@ -14,6 +14,7 @@ TextStyle appBarStyle = const TextStyle(fontSize: 18, fontWeight: FontWeight.bol
 TextStyle userNameStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard username
 TextStyle emailStyle = const TextStyle(fontSize: 14, color: Colors.orange);  // dashboard emails
 TextStyle deviceIdStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard device id
+TextStyle scheduleTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard schedules widget
 TextStyle errorTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // indicating error messages
 TextStyle settingsWidgetTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // settings subtitles
 TextStyle settingsWidgetSelectedTextStyle = const TextStyle(fontSize: 16, color: Colors.orange);  // settings values
@@ -22,8 +23,9 @@ TextStyle settingsWidgetSelectedTextStyle = const TextStyle(fontSize: 16, color:
 Radius generalBorderRadius = const Radius.circular(15);
 BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 
-// General weather data module
-WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();
+// General data managing module
+WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();  // wether data downloader
+ScheduleManager scheduleManager = ScheduleManager();  // download and upload schedule data
 
 
 // Toast message method
@@ -328,8 +330,8 @@ class _HomePageState extends State<HomePage> {
                             ),
                           );
                         }
-                      }
-                      ),
+                      },
+                  ),
                 ),
 
                 GestureDetector(
@@ -339,14 +341,72 @@ class _HomePageState extends State<HomePage> {
                     });
                   },
                   child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
                     height: 300,
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: dashboardCardBorderRadius,
                     ),
-                    child: const Text("Schedules and Tasks"),
+                    child: FutureBuilder(
+                      future: scheduleManager.download(dateTime2String(DateTime.now())),
+                      builder: (BuildContext context, AsyncSnapshot snapshot) {
+                        if (snapshot.hasData == false) {
+                          return Container(
+                            alignment: Alignment.center,
+                            child: const SizedBox(child: CircularProgressIndicator()),
+                          );
+                        }
+                        else if (snapshot.hasError) {
+                          return SizedBox(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                AppLocalizations.of(context)!.errorsInvokeWeather,
+                                style: errorTextStyle,
+                              ),
+                            ),
+                          );
+                        }
+                        else if (snapshot.data.isNotEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.only(left: 25, right: 25, top: 30, bottom: 30),
+                            alignment: Alignment.centerLeft,
+                            child: Column(
+                              children: List<Widget>.generate(
+                                snapshot.data.length < 6 ? snapshot.data.length : 6,
+                                (index) => Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  child: Text(snapshot.data[index],
+                                    style: scheduleTextStyle,
+                                  ),
+                                ),
+                              ) + [
+                                Expanded(
+                                  child: Container(
+                                    alignment: Alignment.bottomRight,
+                                    width: double.infinity,
+                                    child: Text(AppLocalizations.of(context)!.scheduleSeeMore,
+                                      style: const TextStyle(fontSize: 12, color: Colors.orange),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return SizedBox(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                AppLocalizations.of(context)!.scheduleAddNew,
+                                style: scheduleTextStyle,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ),
 

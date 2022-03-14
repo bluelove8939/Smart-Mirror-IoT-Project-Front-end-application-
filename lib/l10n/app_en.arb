@@ -12,6 +12,9 @@
   "weatherFeelsLike": "feels like",
   "weatherHumidity": "Humidity",
 
+  "scheduleSeeMore": "See more",
+  "scheduleAddNew": "Add new schedules",
+
   "smartMirrorSettingMenu": "Smart Mirror Settings",
 
   "settingsMenuTitle": "Settings",
@@ -30,6 +33,7 @@
   "warningsDeviceNotDetected": "Target device not detected",
 
   "errorsInvokeWeather": "Cannot invoke weather data",
+  "errorsInvokeSchedule": "Cannot invoke schedule data",
 
   "msgRestartToSaveSettings": "Restart to save the change",
 
