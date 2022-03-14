@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:location/location.dart';
 import 'package:intl/intl.dart';
@@ -47,6 +48,23 @@ Future<Map<String, String>> readApikeys() async {
     print('Cannot read apikeys file ($e)');
     return {};
   }
+}
+
+
+/*
+ * Methods for datetime management
+ *   - dateTime2String:
+ *       convert DateTime to String
+ *   - string2DateTime:
+ *       convert String to DateTime
+ */
+
+String dateTime2String(DateTime targetDate) {
+  return DateFormat('yyyy-MM-dd').format(targetDate);
+}
+
+DateTime string2DateTime(String targetString) {
+  return DateTime.parse(targetString.substring(0, 10));
 }
 
 
@@ -277,5 +295,134 @@ Future<void> logoutActivation() async {
     await saveSettings(applicationSettings);
   } catch (e) {
     return Future.error('google logout activation error occurred ($e)');
+  }
+}
+
+
+/*
+ * Module for downloading and uploading schedules
+ *   - Description: Download and upload schedule data (uses google drive API)
+ *
+ * Methods
+ *   - findScheduleDirID:
+ *       find out schedule directory ID
+ *   - download:
+ *       download schedule of given date from user's google drive storage
+ *   - upload:
+ *       upload schedule of given date to user's google drive storage
+ */
+
+const String rootDirName = "Ice Cream Hub";  // Root directory name
+const String scheduleDirName = "Schedules";  // Schedule directory name
+const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
+const String textContentType = "text/plain; charset=UTF-8";  // Text file mimetype (encoded as UTF-8)
+
+class ScheduleDownloader {
+  Future<String> findScheduleDirID() async {
+    try {
+      String? rootDirID;      // root directory ID
+      String? scheduleDirID;  // schedule directory ID
+
+      // Find out root directory ID
+      final rootDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$rootDirName' and trashed = false",
+      );
+
+      if (rootDirList.files!.isEmpty) {  // If there's no root directory, make new one
+        final rootDirFile = drive.File();
+        rootDirFile.name = rootDirName;
+        rootDirFile.mimeType = folderMimeType;
+        final result = await driveApi!.files.create(rootDirFile);
+        rootDirID = result.id;
+      } else {
+        rootDirID = rootDirList.files!.first.id!;
+      }
+
+      // Find out schedule directory ID
+      final scheduleDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$scheduleDirName' and trashed = false and '$rootDirID' in parents",
+      );
+
+      if (scheduleDirList.files!.isEmpty) {  // If there's no schedule directory, make new one
+        final scheduleDirFile = drive.File();
+        scheduleDirFile.name = rootDirName;
+        scheduleDirFile.mimeType = folderMimeType;
+        final result = await driveApi!.files.create(scheduleDirFile);
+        scheduleDirID = result.id;
+      } else {
+        scheduleDirID = scheduleDirList.files!.first.id!;
+      }
+
+      return scheduleDirID!;
+    } catch (e) {
+      return Future.error('Schedule directory not defined due to fatal error ($e)');
+    }
+  }
+
+  Future<List> download(String targetDate) async {
+    try {
+      // Find out target text file
+      final scheduleDirID = await findScheduleDirID();
+      final targetFileList = await driveApi!.files.list(spaces: 'drive',
+        q: "name = '$targetDate.csv' and trashed = false and '$scheduleDirID' in parents",
+      );
+
+      if (targetFileList.files!.isEmpty) { return []; }  // return empty list if there's no target file
+
+      final targetFileID = targetFileList.files!.first.id;
+
+      // Send HTTP reauest to Google drive API v3
+      http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
+      String targetContent = utf8.decode(req.bodyBytes);
+
+      // Parse response
+      List parsedTargetContent = targetContent.split('\n');
+      for (int index = 0; index < parsedTargetContent.length; index++) {
+        parsedTargetContent[index] = parsedTargetContent[index]!.split(',');
+      }
+
+      return parsedTargetContent;
+    } catch (e) {
+      return Future.error('Cannot download schedule of $targetDate due to fatal error ($e)');
+    }
+  }
+
+  Future<void> upload(String targetDate, List content) async {
+    try {
+      // Encode content into utf8 (CSV text file format)
+      List lineConcat = [];
+      for (int index = 0; index < content.length; index++) {
+        lineConcat.add(content[index].join('\n'));
+      }
+      List<int> encodedContents = utf8.encode(lineConcat.join('\n'));  // actual data transferred via Google drive API
+
+      // Find out target file ID
+      final scheduleDirID = await findScheduleDirID();
+      final targetFileList = await driveApi!.files.list(spaces: 'drive',
+        q: "name = '$targetDate.csv' and trashed = false and '$scheduleDirID' in parents",
+      );
+
+      // Remove all the existing targetFiles
+      while (targetFileList.files!.isNotEmpty) {
+        driveApi!.files.delete(targetFileList.files!.first.id!);
+        targetFileList.files!.removeAt(0);
+      }
+
+      // Generate new target file
+      final targetFile = drive.File();
+      targetFile.name = "$targetDate.csv";
+      targetFile.parents = [scheduleDirID];
+
+      // Transfer encoded content via Google drive API
+      Stream<List<int>> mediaStream = Future.value(encodedContents).asStream().asBroadcastStream();
+      var media = drive.Media(mediaStream, encodedContents.length, contentType: "text/plain; charset=UTF-8");
+      final result = await driveApi!.files.create(targetFile, uploadMedia: media,);
+
+      print("Backup file ${targetFile.name} as file id  ${result.id}");
+
+      return;
+    } catch (e) {
+      return Future.error('Cannot upload schedule of $targetDate due to fatal error ($e)');
+    }
   }
 }
