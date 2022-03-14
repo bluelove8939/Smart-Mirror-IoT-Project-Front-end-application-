@@ -418,7 +418,7 @@ class ScheduleManager {
       var media = drive.Media(mediaStream, encodedContents.length, contentType: textContentType);
       final result = await driveApi!.files.create(targetFile, uploadMedia: media,);
 
-      print("Backup file ${targetFile.name} as file id  ${result.id}");
+      print("Upload file ${targetFile.name} as file id  ${result.id}");
 
       return;
     } catch (e) {
