@@ -22,6 +22,12 @@ Future<String> applicationDirectoryPath() async {
   return directory.path;
 }
 
+Future<String> scheduleDirectoryPath() async {
+  String targetPath = "${await applicationDirectoryPath()}/schedules";
+  await Directory(targetPath).create();
+  return targetPath;
+}
+
 
 /*
  * Methods for reading API keys
@@ -92,7 +98,7 @@ Map<String, String> defaultApplicationSettings = {
   'email': 'default',
   'profileImageUrl': 'default',
   'themeName': 'red',
-  'autoSyncActivated': 'false',
+  'autoSyncActivated': 'true',
   'isLoginInitialized': 'false',
 };
 
@@ -316,6 +322,8 @@ const String rootDirName = "Ice Cream Hub";  // Root directory name
 const String scheduleDirName = "Schedules";  // Schedule directory name
 const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
 const String textContentType = "text/plain; charset=UTF-8";  // Text file mimetype (encoded as UTF-8)
+Map<String, List> cachedScheduleData = {};
+List<String> dirtyScheduleDateTime = [];
 
 class ScheduleManager {
   Future<String> findScheduleDirID() async {
@@ -327,6 +335,8 @@ class ScheduleManager {
       final rootDirList = await driveApi!.files.list(spaces: 'drive',
         q: "mimeType = '$folderMimeType' and name = '$rootDirName' and trashed = false",
       );
+
+      print("========== ${rootDirList.files!.isEmpty}");
 
       if (rootDirList.files!.isEmpty) {  // If there's no root directory, make new one
         final rootDirFile = drive.File();
@@ -345,8 +355,9 @@ class ScheduleManager {
 
       if (scheduleDirList.files!.isEmpty) {  // If there's no schedule directory, make new one
         final scheduleDirFile = drive.File();
-        scheduleDirFile.name = rootDirName;
+        scheduleDirFile.name = scheduleDirName;
         scheduleDirFile.mimeType = folderMimeType;
+        scheduleDirFile.parents = [rootDirID!];
         final result = await driveApi!.files.create(scheduleDirFile);
         scheduleDirID = result.id;
       } else {
@@ -361,25 +372,41 @@ class ScheduleManager {
 
   Future<List> download(String targetDate) async {
     try {
+      // If there's cache data
+      if (cachedScheduleData.keys.contains(targetDate)) {
+        return cachedScheduleData[targetDate]!;
+      }
+
       // Find out target text file
       final scheduleDirID = await findScheduleDirID();
       final targetFileList = await driveApi!.files.list(spaces: 'drive',
         q: "name = '$targetDate.csv' and trashed = false and '$scheduleDirID' in parents",
       );
 
+      print("========== schedule directory ID: $scheduleDirID");
+
       if (targetFileList.files!.isEmpty) { return []; }  // return empty list if there's no target file
 
       final targetFileID = targetFileList.files!.first.id;
+
+      print("========== target file ID: $targetFileID");
 
       // Send HTTP reauest to Google drive API v3
       http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
       String targetContent = utf8.decode(req.bodyBytes);
 
+      print("========== http response: ${req.bodyBytes}");
+      print("========== decoded respopnse: $targetContent");
+
       // Parse response
-      List parsedTargetContent = targetContent.split('\n');
-      for (int index = 0; index < parsedTargetContent.length; index++) {
-        parsedTargetContent[index] = parsedTargetContent[index]!.split(',');
+      List parsedTargetContent = [];
+      for (String line in targetContent.split('\n')) {
+        parsedTargetContent.add(line.split(','));
       }
+
+      print("========= parsed response: $parsedTargetContent");
+
+      cachedScheduleData[targetDate] = parsedTargetContent.toList();
 
       return parsedTargetContent;
     } catch (e) {
@@ -424,5 +451,56 @@ class ScheduleManager {
     } catch (e) {
       return Future.error('Cannot upload schedule of $targetDate due to fatal error ($e)');
     }
+  }
+}
+
+
+/*
+ * Methods for reading and saving schedules at local storages
+ *
+ * Methods
+ *   - scheduleFile:
+ *       find out path toward target schedule file
+ *   - readSchedule:
+ *       read schedules and store the data as cached data
+ *   - saveSchedule:
+ *       save cached schedules
+ */
+
+Future<File> scheduleFile(String targetDate) async {
+  final schedulePath = await scheduleDirectoryPath();
+  return File('$schedulePath/$targetDate.csv');
+}
+
+Future<List> readSchedule(String targetDate) async {
+  try {
+    File targetFile = await scheduleFile(targetDate);
+    String content = await targetFile.readAsString(encoding: utf8);
+    List parsedContent = [];
+    for (String line in content.split('\n')) {
+      List<String> commaParsed = line.split(',');
+      parsedContent.add(commaParsed);
+    }
+    cachedScheduleData[targetDate] = parsedContent;
+    return parsedContent;
+  } catch (e) {
+    print('Cannot read $targetDate schedule file ($e)');
+    return [];
+  }
+}
+
+Future<void> saveSchedule(String targetDate) async {
+  try {
+    File targetFile = await scheduleFile(targetDate);
+    if (cachedScheduleData.keys.contains(targetDate)) {
+      List lines = [];
+      for (List commaParsed in cachedScheduleData[targetDate]!) {
+        lines.add('${commaParsed[0]},${commaParsed[1]}');
+      }
+      targetFile.writeAsString(lines.join('\n'), encoding: utf8);
+    }
+  } catch (e) {
+    print('Cannot save $targetDate schedule file ($e)');
+    return;
   }
 }

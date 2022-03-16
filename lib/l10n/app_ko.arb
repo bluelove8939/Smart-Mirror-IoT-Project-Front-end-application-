@@ -14,6 +14,11 @@
 
   "scheduleSeeMore": "더보기",
   "scheduleAddNew": "일정을 추가하세요",
+  "scheduleEditDialogTitle": "일정 수정하기",
+  "scheduleEditDialogCompleted": "완료됨",
+  "scheduleEditDialogLabel": "일정",
+  "scheduleUploadingMsg": "업로드하는 중",
+  "scheduleUploadingFailedMsg": "업로드 실패",
 
   "smartMirrorSettingMenu": "스마트 미러 환경설정",
 

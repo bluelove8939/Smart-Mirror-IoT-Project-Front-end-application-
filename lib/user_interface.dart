@@ -16,8 +16,12 @@ TextStyle emailStyle = const TextStyle(fontSize: 14, color: Colors.orange);  // 
 TextStyle deviceIdStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard device id
 TextStyle scheduleTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard schedules widget
 TextStyle errorTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // indicating error messages
+
 TextStyle settingsWidgetTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // settings subtitles
 TextStyle settingsWidgetSelectedTextStyle = const TextStyle(fontSize: 16, color: Colors.orange);  // settings values
+
+TextStyle scheduleManagerDateTimeTextStyle = const TextStyle(fontSize: 18, color: Colors.black);  // schedule manager datetime
+TextStyle scheduleMagerDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black); // schedule manger dialog font
 
 // General border radius
 Radius generalBorderRadius = const Radius.circular(15);
@@ -98,6 +102,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isWeatherDataLoaded = false;
+  Future<List> currentScheduleData = Future.value([]);
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -336,10 +348,54 @@ class _HomePageState extends State<HomePage> {
 
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(context, '/schedules').then((value) {
-                      setState(() {});
+                    Navigator.pushNamed(context, '/schedules').then((value) async {
+                      // Upload dirty files if auto sync is activated
+                      if (applicationSettings['autoSyncActivated'] == 'true') {
+                        for (String targetDate in dirtyScheduleDateTime) {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) {
+                              return AlertDialog(
+                                content: SizedBox(
+                                  height: 120,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(
+                                        width: 40, height: 40,
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 15),
+                                        child: Text("${AppLocalizations.of(context)!.scheduleUploadingMsg} ($targetDate)"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+
+                          try {
+                            await scheduleManager.upload(targetDate, cachedScheduleData[targetDate]!);
+                          } catch (e) {
+                            showToastMessage('${AppLocalizations.of(context)!.scheduleUploadingFailedMsg} ($e)');
+                          }
+
+                          Navigator.of(context).pop();
+                        }
+
+                        // Delete every dirty tag
+                        dirtyScheduleDateTime = [];
+                      }
+
+                      setState(() {
+                        currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+                      });
                     });
                   },
+
                   child: Container(
                     height: 300,
                     margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
@@ -349,7 +405,7 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: dashboardCardBorderRadius,
                     ),
                     child: FutureBuilder(
-                      future: scheduleManager.download(dateTime2String(DateTime.now())),
+                      future: currentScheduleData,
                       builder: (BuildContext context, AsyncSnapshot snapshot) {
                         if (snapshot.hasData == false) {
                           return Container(
@@ -362,7 +418,7 @@ class _HomePageState extends State<HomePage> {
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
-                                AppLocalizations.of(context)!.errorsInvokeWeather,
+                                AppLocalizations.of(context)!.errorsInvokeSchedule,
                                 style: errorTextStyle,
                               ),
                             ),
@@ -373,12 +429,15 @@ class _HomePageState extends State<HomePage> {
                             padding: const EdgeInsets.only(left: 25, right: 25, top: 30, bottom: 30),
                             alignment: Alignment.centerLeft,
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: List<Widget>.generate(
                                 snapshot.data.length < 6 ? snapshot.data.length : 6,
                                 (index) => Container(
                                   margin: const EdgeInsets.only(bottom: 10),
-                                  child: Text(snapshot.data[index],
-                                    style: scheduleTextStyle,
+                                  child: Text(snapshot.data[index][0],
+                                    style: scheduleTextStyle.copyWith(
+                                      decoration: snapshot.data[index][1] == '1' ? TextDecoration.lineThrough : TextDecoration.none,
+                                    ),
                                   ),
                                 ),
                               ) + [
@@ -722,6 +781,75 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
+  DateTime currentDateTime = DateTime.now();
+  Future<List> currentScheduleData = Future.value([]);
+
+  Future<List> showEditingDialog(String initialData, String initialIsChecked) async {
+    final scheduleDataController = TextEditingController();
+    scheduleDataController.text = initialData;
+    String isChecked = initialIsChecked;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          alignment: Alignment.center,
+          title: Text(AppLocalizations.of(context)!.scheduleEditDialogTitle,
+            style: scheduleMagerDialogTextStyle.copyWith(fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+          content: SizedBox(
+            height: 120,
+            child: Column(
+              children: [
+                TextField(
+                  controller: scheduleDataController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.scheduleEditDialogLabel,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(AppLocalizations.of(context)!.scheduleEditDialogCompleted,
+                      style: scheduleMagerDialogTextStyle,
+                    ),
+                    StatefulBuilder(builder: (context, setState) {
+                      return Checkbox(
+                        value: isChecked == '1' ? true : false,
+                        onChanged: (value) {
+                          setState(() {
+                            isChecked = value! ? '1' : '0';
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    return [scheduleDataController.text, isChecked];
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    currentScheduleData = readSchedule(dateTime2String(currentDateTime));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -748,7 +876,236 @@ class _SchedulePageState extends State<SchedulePage> {
 
             SliverList(
               delegate: SliverChildListDelegate([
+                GestureDetector(
+                  onTap: () async {
+                    DateTime? selectedDate = await showDatePicker(
+                      context: context,
+                      initialDate: currentDateTime,
+                      firstDate: DateTime(1960),
+                      lastDate: DateTime(2200),
+                      builder: (BuildContext context, Widget? child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: Theme.of(context).colorScheme.primary,
+                              onPrimary: Colors.white,
+                              onSurface: Colors.black,
+                            ),
+                            textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(primary: Colors.black,),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
 
+                    if (selectedDate != null) {
+                      setState(() {
+                        currentDateTime = selectedDate;
+                        currentScheduleData = readSchedule(dateTime2String(currentDateTime));
+                      });
+                    }
+                  },
+
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 15),
+                    width: double.infinity, height: 55,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 15, right: 15),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, size: 25,),
+
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.only(left: 15, right: 15),
+                              child: Text(dateTime2String(currentDateTime),
+                                style: scheduleManagerDateTimeTextStyle,
+                              ),
+                            ),
+                          ),
+
+                          const Icon(Icons.arrow_forward_ios, size: 25,),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                Container(
+                  margin: const EdgeInsets.only(left: 15, right: 15),
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: FutureBuilder(
+                    future: currentScheduleData,
+                    builder: (context,  AsyncSnapshot<List> snapshot) {
+                      if (snapshot.hasData == false) {
+                        return Container(
+                          height: 50,
+                          alignment: Alignment.center,
+                          margin: const EdgeInsets.only(top: 24),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: dashboardCardBorderRadius,
+                          ),
+                          child: const SizedBox(
+                            width: 30, height : 30,
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return SizedBox(
+                          height: 150,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: Text(
+                              AppLocalizations.of(context)!.errorsInvokeSchedule,
+                              style: errorTextStyle,
+                            ),
+                          ),
+                        );
+                      } else if (snapshot.data!.isNotEmpty) {
+                        return ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: snapshot.data!.length + 1,
+                          itemBuilder: (BuildContext context, int index) {
+                            if (index == snapshot.data!.length) {  // Tail button
+                              return IconButton(
+                                icon: Icon(Icons.add, size: 35, color: Theme.of(context).colorScheme.tertiary,),
+                                onPressed: () async {
+                                  final edited = await showEditingDialog("", "0");
+                                  setState(() {
+                                    if (edited[0].length != 0) {
+                                      snapshot.data!.add(edited.toList());  // update changes
+                                      String stringCurrentDateTime = dateTime2String(currentDateTime);
+
+                                      if (!cachedScheduleData.keys.contains(stringCurrentDateTime)) {
+                                        cachedScheduleData[stringCurrentDateTime] = [edited.toList()];
+                                      } else {
+                                        cachedScheduleData[stringCurrentDateTime]![index] = edited.toList();
+                                      }
+
+                                      if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
+                                        dirtyScheduleDateTime.add(stringCurrentDateTime);  // not uploaded yet
+                                      }
+                                    }
+                                  });
+                                  await saveSchedule(dateTime2String(currentDateTime));
+                                },
+                              );
+                            }
+
+                            return Dismissible(
+                              key: UniqueKey(),
+                              direction: DismissDirection.endToStart,
+
+                              onDismissed: (_) async {
+                                String stringCurrentDateTime = dateTime2String(currentDateTime);
+                                setState(() {
+                                  snapshot.data!.removeAt(index);
+                                  cachedScheduleData[stringCurrentDateTime] = snapshot.data!.toList();
+                                  if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
+                                    dirtyScheduleDateTime.add(stringCurrentDateTime);  // not uploaded yet
+                                  }
+                                });
+                                await saveSchedule(dateTime2String(currentDateTime));
+                              },
+
+                              child: GestureDetector(
+                                onTap: () async {
+                                  String stringCurrentDateTime = dateTime2String(currentDateTime);
+                                  final edited = await showEditingDialog(snapshot.data![index][0], snapshot.data![index][1]);
+                                  setState(() {
+                                    if ((snapshot.data![index][0] != edited[0] || snapshot.data![index][1] != edited[1]) && edited[0].length != 0) {
+                                      snapshot.data![index][0] = edited[0];  // update changes
+                                      snapshot.data![index][1] = edited[1];  // update changes
+
+                                      // Save changes as cache data
+                                      if (!cachedScheduleData.keys.contains(stringCurrentDateTime)) {
+                                        cachedScheduleData[stringCurrentDateTime] = [edited.toList()];
+                                      } else {
+                                        cachedScheduleData[stringCurrentDateTime]![index] = edited.toList();
+                                      }
+
+                                      if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
+                                        dirtyScheduleDateTime.add(stringCurrentDateTime);  // not uploaded yet
+                                      }
+                                    } else if (edited[0].length == 0) {
+                                      snapshot.data!.removeAt(index);
+                                      cachedScheduleData[stringCurrentDateTime] = snapshot.data!.toList();
+                                      if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
+                                        dirtyScheduleDateTime.add(stringCurrentDateTime);  // not uploaded yet
+                                      }
+                                    }
+                                  });
+                                  await saveSchedule(dateTime2String(currentDateTime));
+                                },
+
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 15),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    borderRadius: dashboardCardBorderRadius,
+                                  ),
+                                  child: ListTile(
+                                    title: Container(
+                                      height: 30,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(snapshot.data![index][0],
+                                        style: scheduleTextStyle.copyWith(decoration: snapshot.data![index][1] == '1' ? TextDecoration.lineThrough : TextDecoration.none),
+                                      ),
+                                    ),
+                                    trailing: const Icon(Icons.arrow_back),
+                                  ),
+                                ),
+                              ),
+
+                              background: Container(
+                                margin: const EdgeInsets.only(bottom: 15),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: dashboardCardBorderRadius,
+                                ),
+                                alignment: Alignment.centerRight,
+                                child: const Padding(
+                                  padding: EdgeInsets.only(right: 10),
+                                  child:  Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        return IconButton(
+                          icon: Icon(Icons.add, size: 35, color: Theme.of(context).colorScheme.tertiary,),
+                          onPressed: () async {
+                            final edited = await showEditingDialog("", "0");
+                            setState(() {
+                              if (edited[0].length != 0) {
+                                snapshot.data!.add(edited.toList());  // update changes
+                                String stringCurrentDateTime = dateTime2String(currentDateTime);
+                                cachedScheduleData[stringCurrentDateTime] = [edited.toList()];
+                                if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
+                                  dirtyScheduleDateTime.add(stringCurrentDateTime);  // not uploaded yet
+                                }
+                              }
+                            });
+                            await saveSchedule(dateTime2String(currentDateTime));
+                          },
+                        );
+                      }
+                    },
+                  ),
+                ),
 
                 /* ADD NEW SCHEDULES MANAGING ELEMENT HERE */
 
