@@ -39,8 +39,8 @@ const ColorScheme redColorScheme = ColorScheme(
   onBackground: Colors.white,
   onError: Colors.red,
   onPrimary: Colors.white,
-  onSecondary: Colors.redAccent,
-  onSurface: Colors.white,
+  onSecondary: Colors.white,
+  onSurface: Colors.black,
 );
 
 const ColorScheme yellowColorScheme = ColorScheme(
@@ -54,9 +54,9 @@ const ColorScheme yellowColorScheme = ColorScheme(
 
   onBackground: Colors.white,
   onError: Colors.red,
-  onPrimary: Colors.white,
-  onSecondary: Color.fromRGBO(255, 250, 168, 1),
-  onSurface: Colors.white,
+  onPrimary: Colors.black,
+  onSecondary: Colors.black,
+  onSurface: Colors.black,
 );
 
 const ColorScheme whiteColorScheme = ColorScheme(
@@ -70,9 +70,9 @@ const ColorScheme whiteColorScheme = ColorScheme(
 
   onBackground: Colors.white,
   onError: Colors.red,
-  onPrimary: Colors.white,
-  onSecondary: Colors.white,
-  onSurface: Colors.white,
+  onPrimary: Colors.black,
+  onSecondary: Colors.black,
+  onSurface: Colors.black,
 );
 
 const ColorScheme blackColorScheme = ColorScheme(
@@ -87,6 +87,6 @@ const ColorScheme blackColorScheme = ColorScheme(
   onBackground: Colors.white,
   onError: Colors.red,
   onPrimary: Colors.white,
-  onSecondary: Color.fromRGBO(30, 30, 30, 1),
-  onSurface: Colors.white,
+  onSecondary: Colors.white,
+  onSurface: Colors.black,
 );
