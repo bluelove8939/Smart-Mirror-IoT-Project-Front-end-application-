@@ -479,7 +479,9 @@ Future<List> readSchedule(String targetDate) async {
     List parsedContent = [];
     for (String line in content.split('\n')) {
       List<String> commaParsed = line.split(',');
-      parsedContent.add(commaParsed);
+      if (commaParsed.length == 2) {
+        parsedContent.add(commaParsed);
+      }
     }
     cachedScheduleData[targetDate] = parsedContent;
     return parsedContent;
@@ -495,7 +497,9 @@ Future<void> saveSchedule(String targetDate) async {
     if (cachedScheduleData.keys.contains(targetDate)) {
       List lines = [];
       for (List commaParsed in cachedScheduleData[targetDate]!) {
-        lines.add('${commaParsed[0]},${commaParsed[1]}');
+        if (commaParsed.length == 2) {
+          lines.add('${commaParsed[0]},${commaParsed[1]}');
+        }
       }
       targetFile.writeAsString(lines.join('\n'), encoding: utf8);
     }
