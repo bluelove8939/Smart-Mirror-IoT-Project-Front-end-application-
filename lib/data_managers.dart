@@ -419,7 +419,7 @@ class ScheduleManager {
       // Encode content into utf8 (CSV text file format)
       List lineConcat = [];
       for (int index = 0; index < content.length; index++) {
-        lineConcat.add(content[index].join('\n'));
+        lineConcat.add(content[index].join(','));
       }
       List<int> encodedContents = utf8.encode(lineConcat.join('\n'));  // actual data transferred via Google drive API
 
