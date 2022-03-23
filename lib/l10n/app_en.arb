@@ -34,6 +34,16 @@
 
   "deviceManagingMenuTitle": "Device Managers",
 
+  "deviceConnectionMenuTitle": "Device Connection Manager",
+  "deviceConnectionDialogTitle": "Register device",
+  "deviceNameTag": "Device Name",
+  "deviceIdTag": "MAC Address",
+  "deviceConnectionDialogMsg": "Do you want to register this device?",
+  "deviceConnectionSucceedMsg": "Device connected",
+  "deviceConnectionFailedMsg": "Device connection failed",
+  "deviceConnectionOngoingMsg": "Connecting to device...",
+  "deviceConnectionAlreadyMsg": "Device already connected",
+
   "warningsUserAccountNotAuthenticated": "User account not authenticated",
   "warningsDeviceNotDetected": "Target device not detected",
 

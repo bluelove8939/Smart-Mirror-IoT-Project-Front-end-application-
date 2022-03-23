@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-// import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';  // toast message
 
@@ -7,6 +8,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';  // generated loca
 import 'package:iot_project_demo/data_managers.dart';
 import 'package:iot_project_demo/interface_tools.dart' as interface_tools;
 import 'package:iot_project_demo/color_themes_presets.dart' as color_themes_presets;
+
+import 'package:flutter_blue/flutter_blue.dart' as blue;  // General bluetooth package
+// import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as blue_serial;  // Bluetooth setial (classical bluetooth protocol, RFCOMM)
 
 
 // General text styles
@@ -21,7 +25,9 @@ TextStyle settingsWidgetTextStyle = const TextStyle(fontSize: 16, color: Colors.
 TextStyle settingsWidgetSelectedTextStyle = const TextStyle(fontSize: 16, color: Colors.orange);  // settings values
 
 TextStyle scheduleManagerDateTimeTextStyle = const TextStyle(fontSize: 18, color: Colors.black);  // schedule manager datetime
-TextStyle scheduleMagerDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black); // schedule manger dialog font
+TextStyle scheduleMagerDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // schedule manger dialog font
+
+TextStyle deviceConnectionDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // device connection page dialog font
 
 // General border radius
 Radius generalBorderRadius = const Radius.circular(15);
@@ -30,6 +36,8 @@ BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 // General data managing module
 WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();  // wether data downloader
 ScheduleManager scheduleManager = ScheduleManager();  // download and upload schedule data
+
+StreamSubscription<blue.BluetoothDeviceState>? bluetoothDeviceStateListener;  // state listener
 
 
 // Toast message method
@@ -77,6 +85,7 @@ class App extends StatelessWidget {
         '/settings': (context) => const SettingsPage(),
         '/schedules': (context) => const SchedulePage(),
         '/deviceManager': (context) => const DeviceManagingPage(),
+        '/deviceManager/deviceConnection': (context) => const DeviceConnectionPage(),
       },
 
       // application localization
@@ -1158,13 +1167,305 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
 
             SliverList(
               delegate: SliverChildListDelegate([
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/deviceManager/deviceConnection').then((value) {
+                      setState(() {});
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                    height: 70,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(15),
+                          child: CircleAvatar(
+                            child: Icon(
+                                Icons.perm_device_info_outlined,
+                                color: Theme.of(context).colorScheme.tertiary
+                            ),
+                            radius: 22,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
 
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(AppLocalizations.of(context)!.warningsDeviceNotDetected, style: deviceIdStyle),
+                            Text('00:00:00:00:00:00', style: deviceIdStyle.copyWith(color: Colors.orange),)
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
 
                 /* ADD NEW DEVICE MANAGING ELEMENT HERE */
 
               ]),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/*
+ * Bluetooth device connection
+ *   Device connection mpage
+ */
+
+class DeviceConnectionPage extends StatefulWidget {
+  const DeviceConnectionPage({Key? key}) : super(key: key);
+
+  @override
+  _DeviceConnectionPageState createState() => _DeviceConnectionPageState();
+}
+
+class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
+  List<blue.BluetoothDevice> deviceList = [];
+  bool isScanning = false;
+  bool isConnecting = false;
+
+  void addDevice(blue.BluetoothDevice targetDevice) {
+    if (!deviceList.contains(targetDevice)) {
+      if (mounted) {
+        setState(() {
+          deviceList.add(targetDevice);
+        });
+      }
+    }
+  }
+
+  void scan() {
+    if (!isScanning) {
+      setState(() {
+        isScanning = true;
+        deviceList = [];
+      });
+
+      // Add connected devices to list
+      bluetoothManager.connectedDevices.asStream().listen((devices) {
+        for (blue.BluetoothDevice device in devices) {
+          addDevice(device);
+        }
+      });
+
+      // Add found devices to list
+      bluetoothManager.scanResults.listen((results) {
+        for (blue.ScanResult result in results) {
+          addDevice(result.device);
+        }
+      });
+
+      // start scanning
+      bluetoothManager.startScan(timeout: const Duration(seconds: 4)).then((value) {
+        setState(() {
+          isScanning = false;
+        });
+      });
+    } else {
+      bluetoothManager.stopScan();
+      setState(() {
+        isScanning = false;
+      });
+    }
+  }
+
+  String getDeviceName(blue.BluetoothDevice targetDevice) {
+    print(targetDevice.name);
+    if (targetDevice.name.isNotEmpty) {
+      return targetDevice.name;
+    } else {
+      return 'N/A';
+    }
+  }
+
+  String getDeviceMACId(blue.BluetoothDevice targetDevice) {
+    return targetDevice.id.id;
+  }
+
+  Future<void> registerBluetoothDevice(blue.BluetoothDevice targetDevice) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return WillPopScope(
+          onWillPop: () => Future.value(!isConnecting),  // Cannot go back if connecting
+
+          child: AlertDialog(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            alignment: Alignment.center,
+            title: Text(AppLocalizations.of(context)!.deviceConnectionMenuTitle,
+              style: deviceConnectionDialogTextStyle.copyWith(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: () async {
+                  if (bluetoothDevice != targetDevice) {
+                    showToastMessage(AppLocalizations.of(context)!.deviceConnectionOngoingMsg);
+
+                    isConnecting = true;
+                    bool isConnected = await connectWithDevice(targetDevice);
+
+                    if (isConnected) {
+                      showToastMessage(AppLocalizations.of(context)!.deviceConnectionSucceedMsg);
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    } else {
+                      showToastMessage(AppLocalizations.of(context)!.deviceConnectionFailedMsg);
+                      Navigator.of(context).pop();
+                    }
+
+                    isConnecting = false;
+                  } else {
+                    showToastMessage(AppLocalizations.of(context)!.deviceConnectionAlreadyMsg);
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            ],
+            content: SizedBox(
+              height: 100,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 15, right: 8, left: 8),
+                    child: Text("${AppLocalizations.of(context)!.deviceNameTag}: ${getDeviceName(targetDevice)}",
+                      style: deviceConnectionDialogTextStyle,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8, left: 8, bottom: 15),
+                    child: Text(getDeviceMACId(targetDevice),
+                      style: deviceConnectionDialogTextStyle.copyWith(color: Colors.orange),
+                    ),
+                  ),
+
+                  Text(AppLocalizations.of(context)!.deviceConnectionDialogMsg,
+                    style: deviceConnectionDialogTextStyle,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    deviceList = [];
+    isScanning = false;
+    isConnecting = false;
+
+    scan();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () => Future.value(!isConnecting),  // Cannot go back if connecting
+
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+
+        body: ScrollConfiguration(
+          behavior: interface_tools.GlowRemovedBehavior(),
+          child: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 150.0,
+                backgroundColor: Theme.of(context).colorScheme.background,
+                elevation: 0.0,
+                iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+
+                actions: <Widget>[
+                  IconButton(
+                    icon: Icon(isScanning ? Icons.refresh_outlined : Icons.add,),
+                    tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
+                    onPressed: scan,
+                  ),
+                ],
+
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(AppLocalizations.of(context)!.deviceConnectionMenuTitle,
+                    style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                  ),
+                ),
+              ),
+
+              SliverList(
+                delegate: SliverChildListDelegate(
+                  List.generate(
+                    deviceList.length, (index) {
+                      return GestureDetector(
+                        onTap: () {
+                          if (!isConnecting) {
+                            registerBluetoothDevice(deviceList[index]);
+                          }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                          padding: const EdgeInsets.all(15),
+                          height: 70,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: dashboardCardBorderRadius,
+                          ),
+
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                child: Icon(
+                                  Icons.bluetooth,
+                                  color: Theme.of(context).colorScheme.tertiary,
+                                ),
+                                radius: 22,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.only(left: 15, right: 15),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(getDeviceName(deviceList[index]), style: deviceIdStyle,),
+                                    Text(getDeviceMACId(deviceList[index]), style: deviceIdStyle.copyWith(color: Colors.orange),),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                  }),
+                ),
+              ),
+
+              /* ADD NEW DEVICE CONNECTION ELEMENT HERE */
+
+            ],
+          ),
         ),
       ),
     );

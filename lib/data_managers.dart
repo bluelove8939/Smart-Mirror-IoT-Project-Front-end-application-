@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:location/location.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter/services.dart' show rootBundle;  // read assets text file
+import 'package:http/http.dart' as http;  // Send HTTP request
+import 'package:flutter/services.dart' show rootBundle;  // Read assets text file
 import 'package:googleapis/drive/v3.dart' as drive;  // Google drive
 import 'package:google_sign_in/google_sign_in.dart' as sign_in;  // Google signin
+import 'package:flutter_blue/flutter_blue.dart' as blue;  // Bluetooth package
 
 
 /*
@@ -100,6 +101,8 @@ Map<String, String> defaultApplicationSettings = {
   'themeName': 'red',
   'autoSyncActivated': 'true',
   'isLoginInitialized': 'false',
+  'managedDevice': 'default',
+  'managedDeviceMAC': 'default'
 };
 
 Map<String, String> applicationSettings = {};
@@ -506,5 +509,37 @@ Future<void> saveSchedule(String targetDate) async {
   } catch (e) {
     print('Cannot save $targetDate schedule file ($e)');
     return;
+  }
+}
+
+
+/*
+ * Methods for bluetooth connection
+ *
+ * Methods
+ */
+
+blue.FlutterBlue bluetoothManager = blue.FlutterBlue.instance;  // bluetooth instance
+blue.BluetoothDevice? bluetoothDevice;  // connected device
+blue.BluetoothDeviceState bluetoothDeviceState = blue.BluetoothDeviceState.disconnected;  // device state
+
+Future<bool> connectWithDevice(blue.BluetoothDevice targetDevice) async {
+  try {
+    bool? result;
+
+    await targetDevice.connect(autoConnect: false).timeout(const Duration(milliseconds: 10000), onTimeout: () {
+      print('timeout failed');
+      result = false;
+    }).then((data) {
+      if (result == null) {
+        bluetoothDevice = targetDevice;
+        result = true;
+      }
+    });
+
+    return result!;
+  } catch (e) {
+    print('Cannot connect with the device (id: ${targetDevice.id.id}) ($e)');
+    return false;
   }
 }
