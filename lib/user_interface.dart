@@ -8,9 +8,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';  // generated loca
 import 'package:iot_project_demo/data_managers.dart';
 import 'package:iot_project_demo/interface_tools.dart' as interface_tools;
 import 'package:iot_project_demo/color_themes_presets.dart' as color_themes_presets;
-
-import 'package:flutter_blue/flutter_blue.dart' as blue;  // General bluetooth package
-// import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as blue_serial;  // Bluetooth setial (classical bluetooth protocol, RFCOMM)
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as blue_serial;  // Bluetooth setial (classical bluetooth protocol, RFCOMM)
 
 
 // General text styles
@@ -36,8 +34,6 @@ BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 // General data managing module
 WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();  // wether data downloader
 ScheduleManager scheduleManager = ScheduleManager();  // download and upload schedule data
-
-StreamSubscription<blue.BluetoothDeviceState>? bluetoothDeviceStateListener;  // state listener
 
 
 // Toast message method
@@ -1233,69 +1229,13 @@ class DeviceConnectionPage extends StatefulWidget {
 }
 
 class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
-  List<blue.BluetoothDevice> deviceList = [];
   bool isScanning = false;
   bool isConnecting = false;
 
-  void addDevice(blue.BluetoothDevice targetDevice) {
-    if (!deviceList.contains(targetDevice)) {
-      if (mounted) {
-        setState(() {
-          deviceList.add(targetDevice);
-        });
-      }
-    }
-  }
+  StreamSubscription<blue_serial.BluetoothDiscoveryResult>? streamSubscription;
+  List<blue_serial.BluetoothDiscoveryResult> results = List<blue_serial.BluetoothDiscoveryResult>.empty(growable: true);
 
-  void scan() {
-    if (!isScanning) {
-      setState(() {
-        isScanning = true;
-        deviceList = [];
-      });
-
-      // Add connected devices to list
-      bluetoothManager.connectedDevices.asStream().listen((devices) {
-        for (blue.BluetoothDevice device in devices) {
-          addDevice(device);
-        }
-      });
-
-      // Add found devices to list
-      bluetoothManager.scanResults.listen((results) {
-        for (blue.ScanResult result in results) {
-          addDevice(result.device);
-        }
-      });
-
-      // start scanning
-      bluetoothManager.startScan(timeout: const Duration(seconds: 4)).then((value) {
-        setState(() {
-          isScanning = false;
-        });
-      });
-    } else {
-      bluetoothManager.stopScan();
-      setState(() {
-        isScanning = false;
-      });
-    }
-  }
-
-  String getDeviceName(blue.BluetoothDevice targetDevice) {
-    print(targetDevice.name);
-    if (targetDevice.name.isNotEmpty) {
-      return targetDevice.name;
-    } else {
-      return 'N/A';
-    }
-  }
-
-  String getDeviceMACId(blue.BluetoothDevice targetDevice) {
-    return targetDevice.id.id;
-  }
-
-  Future<void> registerBluetoothDevice(blue.BluetoothDevice targetDevice) async {
+  Future<void> registerBluetoothDevice(blue_serial.BluetoothDiscoveryResult targetResult) async {
     await showDialog(
       context: context,
       builder: (context) {
@@ -1312,26 +1252,19 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
               IconButton(
                 icon: const Icon(Icons.check),
                 onPressed: () async {
-                  if (bluetoothDevice != targetDevice) {
-                    showToastMessage(AppLocalizations.of(context)!.deviceConnectionOngoingMsg);
-
-                    isConnecting = true;
-                    bool isConnected = await connectWithDevice(targetDevice);
-
-                    if (isConnected) {
-                      showToastMessage(AppLocalizations.of(context)!.deviceConnectionSucceedMsg);
-                      Navigator.of(context).pop();
-                      Navigator.of(context).pop();
-                    } else {
-                      showToastMessage(AppLocalizations.of(context)!.deviceConnectionFailedMsg);
-                      Navigator.of(context).pop();
-                    }
-
-                    isConnecting = false;
+                  if (targetResult.device.isBonded) {
+                    showToastMessage(AppLocalizations.of(context)!.deviceBondingAlreadyMsg);
                   } else {
-                    showToastMessage(AppLocalizations.of(context)!.deviceConnectionAlreadyMsg);
-                    Navigator.of(context).pop();
+                    bool bondResult = await blue_serial.FlutterBluetoothSerial.instance
+                        .bondDeviceAtAddress(getDeviceId(targetResult)) ?? false;
+                    if (bondResult) {
+                      showToastMessage(AppLocalizations.of(context)!.deviceBondingSucceedMsg);
+                    } else {
+                      showToastMessage(AppLocalizations.of(context)!.deviceBondingFailedMsg);
+                    }
                   }
+
+                  Navigator.of(context).pop();
                 },
               ),
             ],
@@ -1343,18 +1276,18 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 15, right: 8, left: 8),
-                    child: Text("${AppLocalizations.of(context)!.deviceNameTag}: ${getDeviceName(targetDevice)}",
+                    child: Text("${AppLocalizations.of(context)!.deviceNameTag}: ${getDeviceName(targetResult)}",
                       style: deviceConnectionDialogTextStyle,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(right: 8, left: 8, bottom: 15),
-                    child: Text(getDeviceMACId(targetDevice),
+                    child: Text(getDeviceId(targetResult),
                       style: deviceConnectionDialogTextStyle.copyWith(color: Colors.orange),
                     ),
                   ),
 
-                  Text(AppLocalizations.of(context)!.deviceConnectionDialogMsg,
+                  Text(AppLocalizations.of(context)!.deviceBondingDialogMsg,
                     style: deviceConnectionDialogTextStyle,
                   ),
                 ],
@@ -1364,17 +1297,58 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
         );
       },
     );
+  }
 
+  void restartScanning() {
+    setState(() {
+      results.clear();
+      isScanning = true;
+    });
+
+    startScanning();
+  }
+
+  void startScanning() {
+    streamSubscription =
+        blue_serial.FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+          setState(() {
+            final existingIndex = results.indexWhere((element) => element.device.address == r.device.address);
+            if (existingIndex >= 0) {
+              results[existingIndex] = r;
+            } else {
+              results.add(r);
+            }
+          });
+        });
+
+    streamSubscription!.onDone(() {
+      setState(() {
+        isScanning = false;
+      });
+    });
+  }
+
+  String getDeviceName(blue_serial.BluetoothDiscoveryResult targetResult) {
+    return targetResult.device.name ?? 'N/A';
+  }
+
+  String getDeviceId(blue_serial.BluetoothDiscoveryResult targetResult) {
+    return targetResult.device.address;
   }
 
   @override
   void initState() {
     super.initState();
-    deviceList = [];
-    isScanning = false;
+    isScanning = true;
     isConnecting = false;
 
-    scan();
+    startScanning();
+  }
+
+  @override
+  void dispose() {
+    streamSubscription?.cancel();  // avoid memory leak
+    super.dispose();
   }
 
   @override
@@ -1400,7 +1374,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                   IconButton(
                     icon: Icon(isScanning ? Icons.refresh_outlined : Icons.add,),
                     tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
-                    onPressed: scan,
+                    onPressed: restartScanning,
                   ),
                 ],
 
@@ -1415,11 +1389,11 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
               SliverList(
                 delegate: SliverChildListDelegate(
                   List.generate(
-                    deviceList.length, (index) {
+                    results.length, (index) {
                       return GestureDetector(
                         onTap: () {
                           if (!isConnecting) {
-                            registerBluetoothDevice(deviceList[index]);
+                            registerBluetoothDevice(results[index]);
                           }
                         },
                         child: Container(
@@ -1449,8 +1423,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(getDeviceName(deviceList[index]), style: deviceIdStyle,),
-                                    Text(getDeviceMACId(deviceList[index]), style: deviceIdStyle.copyWith(color: Colors.orange),),
+                                    Text(getDeviceName(results[index]), style: deviceIdStyle,),
+                                    Text(getDeviceId(results[index]), style: deviceIdStyle.copyWith(color: Colors.orange),),
                                   ],
                                 ),
                               ),
