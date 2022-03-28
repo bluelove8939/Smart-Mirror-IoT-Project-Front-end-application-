@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +28,7 @@ TextStyle scheduleManagerDateTimeTextStyle = const TextStyle(fontSize: 18, color
 TextStyle scheduleMagerDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // schedule manger dialog font
 
 TextStyle deviceConnectionDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // device connection page dialog font
+TextStyle deviceManagingDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // device managing page dialog font
 
 // General border radius
 Radius generalBorderRadius = const Radius.circular(15);
@@ -124,391 +127,366 @@ class _HomePageState extends State<HomePage> {
 
       body: ScrollConfiguration(
         behavior: interface_tools.GlowRemovedBehavior(),
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 150.0,
-              backgroundColor: Theme.of(context).colorScheme.background,
-              elevation: 0.0,
-              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+        child: Container(
+          margin: const EdgeInsets.only(left: 15, right: 15),
+          child: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 150.0,
+                backgroundColor: Theme.of(context).colorScheme.background,
+                elevation: 0.0,
+                iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
 
-              leading: IconButton(
-                icon: const Icon(Icons.refresh_outlined,),
-                tooltip: AppLocalizations.of(context)!.homePageRefreshTooltip,
-                onPressed: () {
-                  setState(() {
-
-                  });
-                },
-              ),
-
-              actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.settings,),
-                  tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
+                leading: IconButton(
+                  icon: const Icon(Icons.refresh_outlined,),
+                  tooltip: AppLocalizations.of(context)!.homePageRefreshTooltip,
                   onPressed: () {
-                    Navigator.pushNamed(context, '/settings').then((value) {
-                      setState(() {});
+                    setState(() {
+
                     });
                   },
                 ),
-              ],
 
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: Text(AppLocalizations.of(context)!.homePageTitle,
-                  style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                actions: <Widget>[
+                  IconButton(
+                    icon: const Icon(Icons.settings,),
+                    tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/settings').then((value) {
+                        setState(() {});
+                      });
+                    },
+                  ),
+                ],
+
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(AppLocalizations.of(context)!.homePageTitle,
+                    style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 ),
               ),
-            ),
 
-            SliverList(
-              delegate: SliverChildListDelegate([
-                GestureDetector(
-                  onTap: () async {
-                    if (isLoginActivated()) {
-                      await logoutActivation();
-                    } else {
-                      await loginActivation();
-                    }
-                    setState(() {});
-                  },
-
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                    height: 70,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: dashboardCardBorderRadius,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.all(15),
-                          child: applicationSettings['profileImageUrl'] == 'default' ? CircleAvatar(
-                            child: Icon(
-                              Icons.person,
-                              color: Theme.of(context).colorScheme.tertiary,
-                            ),
-                            radius: 22,
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                          ) : CircleAvatar(
-                            backgroundImage: NetworkImage(
-                              applicationSettings['profileImageUrl']!,
-                            ),
-                            radius: 22,
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(applicationSettings['userName'] == 'default' ? AppLocalizations.of(context)!.warningsUserAccountNotAuthenticated : applicationSettings['userName']!, style: userNameStyle),
-                            Text(applicationSettings['email'] == 'default' ? 'email@domain.com' : applicationSettings['email']!, style: emailStyle),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/deviceManager').then((value) {
-                      setState(() {});
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                    height: 70,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: dashboardCardBorderRadius,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.all(15),
-                          child: CircleAvatar(
-                            child: Icon(
-                                Icons.perm_device_info_outlined,
-                                color: Theme.of(context).colorScheme.tertiary
-                            ),
-                            radius: 22,
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-
-                        Text(AppLocalizations.of(context)!.warningsDeviceNotDetected, style: deviceIdStyle)
-                      ],
-                    ),
-                  ),
-                ),
-
-                Container(
-                  height: 160,
-                  margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: dashboardCardBorderRadius,
-                  ),
-                  child: FutureBuilder(
-                      future: weatherDataDownloader.refreshWeather(
-                        langCode: AppLocalizations.of(context)!.weatherLangCode,
-                        locale: AppLocalizations.of(context)!.fullLocale,
-                      ),
-                      builder: (BuildContext context, AsyncSnapshot snapshot) {
-                        if (snapshot.hasData == false) {
-                          isWeatherDataLoaded = false;
-                          return Container(
-                            alignment: Alignment.center,
-                            child: const SizedBox(child: CircularProgressIndicator()),
-                          );
-                        }
-                        else if (snapshot.hasError) {
-                          isWeatherDataLoaded = false;
-                          return SizedBox(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                AppLocalizations.of(context)!.errorsInvokeWeather,
-                                style: errorTextStyle,
-                              ),
-                            ),
-                          );
-                        }
-                        else {
-                          isWeatherDataLoaded = true;
-                          return Container(
-                            padding: const EdgeInsets.only(left: 25, right: 25, top: 15, bottom: 20),
-                            alignment: Alignment.centerLeft,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      '${snapshot.data['name']} ',
-                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      '${snapshot.data['main']['temp']}°C',
-                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
-                                    ),
-                                      snapshot.data['weathericon'],
-                                  ],
-                                ),
-
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Text(
-                                    '(${AppLocalizations.of(context)!.weatherFeelsLike} ${snapshot.data['main']['feels_like']}°C, ${AppLocalizations.of(context)!.weatherMinTemp} ${snapshot.data['main']['temp_min']}°C, ${AppLocalizations.of(context)!.weatherMaxTemp} ${snapshot.data['main']['temp_max']}°C)',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-
-                                Text(
-                                  '${AppLocalizations.of(context)!.weatherHumidity}: ${snapshot.data['main']['humidity']}%',
-                                  style: const TextStyle(fontSize: 22),
-                                ),
-
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        width: double.infinity,
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          '${snapshot.data['refreshDateTime']}',
-                                          style: const TextStyle(fontSize: 12, color: Colors.orange),
-                                        ),
-                                      ),
-                                    ),
-
-                                    IconButton(
-                                      icon: const Icon(Icons.refresh_outlined),
-                                      iconSize: 20,
-                                      onPressed: (){
-                                        setState(() {});
-                                        },
-                                      padding: const EdgeInsets.only(left: 5),
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          );
-                        }
-                      },
-                  ),
-                ),
-
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/schedules').then((value) async {
-                      // Upload dirty files if auto sync is activated
-                      if (applicationSettings['autoSyncActivated'] == 'true') {
-                        for (String targetDate in dirtyScheduleDateTime) {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) {
-                              return AlertDialog(
-                                content: SizedBox(
-                                  height: 120,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(
-                                        width: 40, height: 40,
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 15),
-                                        child: Text("${AppLocalizations.of(context)!.scheduleUploadingMsg} ($targetDate)"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-
-                          try {
-                            await scheduleManager.upload(targetDate, cachedScheduleData[targetDate]!);
-                          } catch (e) {
-                            showToastMessage('${AppLocalizations.of(context)!.scheduleUploadingFailedMsg} ($e)');
-                          }
-
-                          Navigator.of(context).pop();
-                        }
-
-                        // Delete every dirty tag
-                        dirtyScheduleDateTime = [];
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  GestureDetector(
+                    onTap: () async {
+                      if (isLoginActivated()) {
+                        await logoutActivation();
+                      } else {
+                        await loginActivation();
                       }
+                      setState(() {});
+                    },
 
-                      setState(() {
-                        currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 15),
+                      height: 70,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.all(15),
+                            child: applicationSettings['profileImageUrl'] == 'default' ? CircleAvatar(
+                              child: Icon(
+                                Icons.person,
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ) : CircleAvatar(
+                              backgroundImage: NetworkImage(
+                                applicationSettings['profileImageUrl']!,
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(applicationSettings['userName'] == 'default' ? AppLocalizations.of(context)!.warningsUserAccountNotAuthenticated : applicationSettings['userName']!, style: userNameStyle),
+                              Text(applicationSettings['email'] == 'default' ? 'email@domain.com' : applicationSettings['email']!, style: emailStyle),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/deviceManager').then((value) {
+                        setState(() {});
                       });
-                    });
-                  },
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 15),
+                      height: 70,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.all(15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.perm_device_info_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
 
-                  child: Container(
-                    height: 300,
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                          Text(applicationSettings['managedDeviceName'] == defaultApplicationSettings['managedDeviceName'] ? AppLocalizations.of(context)!.warningsDeviceNotDetected : applicationSettings['managedDeviceName']!,
+                            style: deviceIdStyle,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Container(
+                    height: 160,
+                    margin: const EdgeInsets.only(top: 15),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: dashboardCardBorderRadius,
                     ),
                     child: FutureBuilder(
-                      future: currentScheduleData,
-                      builder: (BuildContext context, AsyncSnapshot snapshot) {
-                        if (snapshot.hasData == false) {
-                          return Container(
-                            alignment: Alignment.center,
-                            child: const SizedBox(child: CircularProgressIndicator()),
-                          );
-                        }
-                        else if (snapshot.hasError) {
-                          return SizedBox(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                AppLocalizations.of(context)!.errorsInvokeSchedule,
-                                style: errorTextStyle,
+                        future: weatherDataDownloader.refreshWeather(
+                          langCode: AppLocalizations.of(context)!.weatherLangCode,
+                          locale: AppLocalizations.of(context)!.fullLocale,
+                        ),
+                        builder: (BuildContext context, AsyncSnapshot snapshot) {
+                          if (snapshot.hasData == false) {
+                            isWeatherDataLoaded = false;
+                            return Container(
+                              alignment: Alignment.center,
+                              child: const SizedBox(child: CircularProgressIndicator()),
+                            );
+                          }
+                          else if (snapshot.hasError) {
+                            isWeatherDataLoaded = false;
+                            return SizedBox(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  AppLocalizations.of(context)!.errorsInvokeWeather,
+                                  style: errorTextStyle,
+                                ),
                               ),
-                            ),
-                          );
-                        }
-                        else if (snapshot.data.isNotEmpty) {
-                          return Container(
-                            padding: const EdgeInsets.only(left: 25, right: 25, top: 30, bottom: 30),
-                            alignment: Alignment.centerLeft,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: List<Widget>.generate(
-                                snapshot.data.length < 6 ? snapshot.data.length : 6,
-                                (index) => Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  child: Text(snapshot.data[index][0],
-                                    style: scheduleTextStyle.copyWith(
-                                      decoration: snapshot.data[index][1] == '1' ? TextDecoration.lineThrough : TextDecoration.none,
+                            );
+                          }
+                          else {
+                            isWeatherDataLoaded = true;
+                            return Container(
+                              padding: const EdgeInsets.only(left: 25, right: 25, top: 15, bottom: 20),
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${snapshot.data['name']} ',
+                                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        '${snapshot.data['main']['temp']}°C',
+                                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
+                                      ),
+                                        snapshot.data['weathericon'],
+                                    ],
+                                  ),
+
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Text(
+                                      '(${AppLocalizations.of(context)!.weatherFeelsLike} ${snapshot.data['main']['feels_like']}°C, ${AppLocalizations.of(context)!.weatherMinTemp} ${snapshot.data['main']['temp_min']}°C, ${AppLocalizations.of(context)!.weatherMaxTemp} ${snapshot.data['main']['temp_max']}°C)',
+                                      style: const TextStyle(fontSize: 14),
                                     ),
                                   ),
-                                ),
-                              ) + [
-                                Expanded(
-                                  child: Container(
-                                    alignment: Alignment.bottomRight,
-                                    width: double.infinity,
-                                    child: Text(AppLocalizations.of(context)!.scheduleSeeMore,
-                                      style: const TextStyle(fontSize: 12, color: Colors.orange),
-                                    ),
+
+                                  Text(
+                                    '${AppLocalizations.of(context)!.weatherHumidity}: ${snapshot.data['main']['humidity']}%',
+                                    style: const TextStyle(fontSize: 22),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          return SizedBox(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                AppLocalizations.of(context)!.scheduleAddNew,
-                                style: scheduleTextStyle,
+
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          width: double.infinity,
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            '${snapshot.data['refreshDateTime']}',
+                                            style: const TextStyle(fontSize: 12, color: Colors.orange),
+                                          ),
+                                        ),
+                                      ),
+
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh_outlined),
+                                        iconSize: 20,
+                                        onPressed: (){
+                                          setState(() {});
+                                          },
+                                        padding: const EdgeInsets.only(left: 5),
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ],
+                                  )
+                                ],
                               ),
-                            ),
-                          );
-                        }
-                      },
+                            );
+                          }
+                        },
                     ),
                   ),
-                ),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(15, 15, 7, 15),
-                        height: 100,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: dashboardCardBorderRadius,
-                        ),
-                        child: const Text("Control UI"),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/schedules').then((value) async {
+                        // Upload dirty files if auto sync is activated
+                        if (applicationSettings['autoSyncActivated'] == 'true') {
+                          for (String targetDate in dirtyScheduleDateTime) {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) {
+                                return AlertDialog(
+                                  content: SizedBox(
+                                    height: 120,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 40, height: 40,
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 15),
+                                          child: Text("${AppLocalizations.of(context)!.scheduleUploadingMsg} ($targetDate)"),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+
+                            try {
+                              await scheduleManager.upload(targetDate, cachedScheduleData[targetDate]!);
+                            } catch (e) {
+                              showToastMessage('${AppLocalizations.of(context)!.scheduleUploadingFailedMsg} ($e)');
+                            }
+
+                            Navigator.of(context).pop();
+                          }
+
+                          // Delete every dirty tag
+                          dirtyScheduleDateTime = [];
+                        }
+
+                        setState(() {
+                          currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+                        });
+                      });
+                    },
+
+                    child: Container(
+                      height: 300,
+                      margin: const EdgeInsets.only(top: 15, bottom: 15),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+                      child: FutureBuilder(
+                        future: currentScheduleData,
+                        builder: (BuildContext context, AsyncSnapshot snapshot) {
+                          if (snapshot.hasData == false) {
+                            return Container(
+                              alignment: Alignment.center,
+                              child: const SizedBox(child: CircularProgressIndicator()),
+                            );
+                          }
+                          else if (snapshot.hasError) {
+                            return SizedBox(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  AppLocalizations.of(context)!.errorsInvokeSchedule,
+                                  style: errorTextStyle,
+                                ),
+                              ),
+                            );
+                          }
+                          else if (snapshot.data.isNotEmpty) {
+                            return Container(
+                              padding: const EdgeInsets.only(left: 25, right: 25, top: 30, bottom: 30),
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: List<Widget>.generate(
+                                  snapshot.data.length < 6 ? snapshot.data.length : 6,
+                                  (index) => Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    child: Text(snapshot.data[index][0],
+                                      style: scheduleTextStyle.copyWith(
+                                        decoration: snapshot.data[index][1] == '1' ? TextDecoration.lineThrough : TextDecoration.none,
+                                      ),
+                                    ),
+                                  ),
+                                ) + [
+                                  Expanded(
+                                    child: Container(
+                                      alignment: Alignment.bottomRight,
+                                      width: double.infinity,
+                                      child: Text(AppLocalizations.of(context)!.scheduleSeeMore,
+                                        style: const TextStyle(fontSize: 12, color: Colors.orange),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            return SizedBox(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  AppLocalizations.of(context)!.scheduleAddNew,
+                                  style: scheduleTextStyle,
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ),
+                  ),
 
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(7, 15, 15, 15),
-                        height: 100,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: dashboardCardBorderRadius,
-                        ),
-                        child: const Text("Control UI"),
-                      ),
-                    ),
-                  ],
-                ),
+                  /* ADD NEW DASHBOARD ELEMENT HERE */
 
-                /* ADD NEW DASHBOARD ELEMENT HERE */
-
-              ]),
-            ),
-          ],
+                ]),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -624,148 +602,151 @@ class _SettingsPageState extends State<SettingsPage> {
 
       body: ScrollConfiguration(
         behavior: interface_tools.GlowRemovedBehavior(),
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 150.0,
-              backgroundColor: Theme.of(context).colorScheme.background,
-              elevation: 0.0,
-              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 15, right: 15),
+          child: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 150.0,
+                backgroundColor: Theme.of(context).colorScheme.background,
+                elevation: 0.0,
+                iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
 
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: Text(AppLocalizations.of(context)!.settingsMenuTitle,
-                  style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(AppLocalizations.of(context)!.settingsMenuTitle,
+                    style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 ),
               ),
-            ),
 
-            SliverList(
-              delegate: SliverChildListDelegate([
-                GestureDetector(
-                  onTap: selectTheme,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                    width: double.infinity, height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: dashboardCardBorderRadius,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.only(left: 15),
-                          child: Text(AppLocalizations.of(context)!.settingsTheme, style: settingsWidgetTextStyle),
-                        ),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.only(right: 15),
-                            width: double.infinity,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              color_themes_presets.translateColorName(AppLocalizations.of(context)!, applicationSettings['themeName']!),
-                              style: settingsWidgetSelectedTextStyle,
-                            ),
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  GestureDetector(
+                    onTap: selectTheme,
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      width: double.infinity, height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Text(AppLocalizations.of(context)!.settingsTheme, style: settingsWidgetTextStyle),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                GestureDetector(
-                  onTap: () async {
-                    if (applicationSettings['autoSyncActivated'] == 'true') {
-                      await showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            alignment: Alignment.center,
-                            title: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle.copyWith(fontWeight: FontWeight.bold)),
-                            actions: [
-                              IconButton(
-                                icon: const Icon(Icons.check),
-                                onPressed: () {
-                                  setState(() {
-                                    applicationSettings['autoSyncActivated'] = 'false';
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                              )
-                            ],
-                            content: Text(AppLocalizations.of(context)!.settingsDeactivationDialogContent, style: settingsWidgetTextStyle,),
-                          );
-                        },
-                      );
-                    } else {
-                      await showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            alignment: Alignment.center,
-                            title: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle.copyWith(fontWeight: FontWeight.bold)),
-                            actions: [
-                              IconButton(
-                                icon: const Icon(Icons.check),
-                                onPressed: () {
-                                  setState(() {
-                                    applicationSettings['autoSyncActivated'] = 'true';
-                                  });
-                                  Navigator.of(context).pop();
-                                },
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.only(right: 15),
+                              width: double.infinity,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                color_themes_presets.translateColorName(AppLocalizations.of(context)!, applicationSettings['themeName']!),
+                                style: settingsWidgetSelectedTextStyle,
                               ),
-                            ],
-                            content: Text(AppLocalizations.of(context)!.settingsActivationDialogContent, style: settingsWidgetTextStyle,),
-                          );
-                        },
-                      );
-                    }
-
-                    await saveSettings(applicationSettings);
-                    setState(() {});
-                  },
-
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                    width: double.infinity, height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: dashboardCardBorderRadius,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.only(left: 15),
-                          child: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle),
-                        ),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.only(right: 15),
-                            width: double.infinity,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              interface_tools.string2Bool(applicationSettings['autoSyncActivated']!) ? AppLocalizations.of(context)!.settingsActivated : AppLocalizations.of(context)!.settingsDeactivated,
-                              style: settingsWidgetSelectedTextStyle,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                /* ADD NEW SETTINGS ELEMENT HERE */
+                  GestureDetector(
+                    onTap: () async {
+                      if (applicationSettings['autoSyncActivated'] == 'true') {
+                        await showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              alignment: Alignment.center,
+                              title: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle.copyWith(fontWeight: FontWeight.bold)),
+                              actions: [
+                                IconButton(
+                                  icon: const Icon(Icons.check),
+                                  onPressed: () {
+                                    setState(() {
+                                      applicationSettings['autoSyncActivated'] = 'false';
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                )
+                              ],
+                              content: Text(AppLocalizations.of(context)!.settingsDeactivationDialogContent, style: settingsWidgetTextStyle,),
+                            );
+                          },
+                        );
+                      } else {
+                        await showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              alignment: Alignment.center,
+                              title: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle.copyWith(fontWeight: FontWeight.bold)),
+                              actions: [
+                                IconButton(
+                                  icon: const Icon(Icons.check),
+                                  onPressed: () {
+                                    setState(() {
+                                      applicationSettings['autoSyncActivated'] = 'true';
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                              content: Text(AppLocalizations.of(context)!.settingsActivationDialogContent, style: settingsWidgetTextStyle,),
+                            );
+                          },
+                        );
+                      }
 
-              ]),
-            ),
-          ],
+                      await saveSettings(applicationSettings);
+                      setState(() {});
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      width: double.infinity, height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Text(AppLocalizations.of(context)!.settingsAutoSync, style: settingsWidgetTextStyle),
+                          ),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.only(right: 15),
+                              width: double.infinity,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                interface_tools.string2Bool(applicationSettings['autoSyncActivated']!) ? AppLocalizations.of(context)!.settingsActivated : AppLocalizations.of(context)!.settingsDeactivated,
+                                style: settingsWidgetSelectedTextStyle,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  /* ADD NEW SETTINGS ELEMENT HERE */
+
+                ]),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1137,6 +1118,212 @@ class DeviceManagingPage extends StatefulWidget {
 }
 
 class _DeviceManagingPageState extends State<DeviceManagingPage> {
+  blue_serial.BluetoothConnection? connection;
+  List<bool?> tickets = [];
+  List<TokenSent> tokens = [];
+  bool isConnecting = true;
+  bool get isConnected => (connection?.isConnected ?? false);
+  bool isDisconnecting = false;
+  final formKey = GlobalKey<FormState>();
+
+  void onDataReceived(Uint8List data) {
+    int backspacesCounter = 0;
+    for (var byte in data) {
+      if (byte == 8 || byte == 127) {
+        backspacesCounter++;
+      }
+    }
+    Uint8List buffer = Uint8List(data.length - backspacesCounter);
+    int bufferIndex = buffer.length;
+
+    backspacesCounter = 0;
+    for (int i = data.length - 1; i >= 0; i--) {
+      if (data[i] == 8 || data[i] == 127) {
+        backspacesCounter++;
+      } else {
+        if (backspacesCounter > 0) {
+          backspacesCounter--;
+        } else {
+          buffer[--bufferIndex] = data[i];
+        }
+      }
+    }
+
+    String dataString = String.fromCharCodes(buffer);
+    Map<String, dynamic> decodedData = jsonDecode(dataString);
+    final token = TokenReceived.fromJson(decodedData);
+
+    if (tickets[token.ticket] == null) {
+      if (token.type == 'failed') {
+        tickets[token.ticket] = false;
+        showToastMessage(AppLocalizations.of(context)!.deviceManagingFailedMsg);
+      } else {
+        tickets[token.ticket] = true;
+        showToastMessage(AppLocalizations.of(context)!.deviceManagingSucceedMsg);
+      }
+    }
+  }
+
+  void sendToken(Map<String, dynamic> tokenContent) async {
+    if (isConnected && connection != null) {
+      final ticket = tickets.length;
+      tokenContent['ticket'] = ticket;
+      final token = TokenSent.fromJson(tokenContent);
+      tickets.add(null);
+      tokens.add(token);
+
+      final encodedToken = jsonEncode(token);
+      connection!.output.add(Uint8List.fromList(utf8.encode(encodedToken)));
+      await connection!.output.allSent;
+
+      Future.delayed(const Duration(seconds: 2)).then((value) {
+        if (tickets[ticket] == null) {
+          tickets[ticket] = false;
+          showToastMessage(AppLocalizations.of(context)!.deviceManagingTimeoutMsg);
+        }
+      });
+    } else {
+      showToastMessage(AppLocalizations.of(context)!.deviceManagingFiledConnectionMsg);
+    }
+  }
+
+  void connectTargetDevice() {
+    print(isConnected);
+    if (isConnected) {
+      return;
+    }
+
+    setState(() {
+      isConnecting = true;
+    });
+
+    if (applicationSettings['managedDeviceMAC'] != defaultApplicationSettings['managedDeviceMAC']) {
+      blue_serial.BluetoothConnection.toAddress(applicationSettings['managedDeviceMAC']).then((_connection) {
+        connection = _connection;
+
+        setState(() {
+          isConnecting = false;
+          isDisconnecting = false;
+        });
+
+        connection!.input!.listen(onDataReceived).onDone(() {
+          if (isDisconnecting) {
+            print('Disconnecting locally!');
+          } else {
+            showToastMessage(AppLocalizations.of(context)!.deviceDisconnectionRemoteMsg);
+          }
+          if (mounted) {
+            setState(() {});
+          }
+        });
+      }).catchError((e) {
+        showToastMessage(AppLocalizations.of(context)!.deviceConnectionErrorMsg);
+        print('========== connection failed: $e');
+
+        setState(() {
+          isConnecting = false;
+          isDisconnecting = false;
+        });
+      });
+    }
+  }
+
+  Future<int> showIntervalEditingDialog() async {
+    final hourDataController = TextEditingController();
+    final minuteDataController = TextEditingController();
+
+    hourDataController.text = '0';
+    minuteDataController.text = '20';
+
+    int minvalue = -1;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          alignment: Alignment.center,
+          title: Text(AppLocalizations.of(context)!.deviceManagingMenuSetIntervaldialogTitle,
+            style: deviceManagingDialogTextStyle.copyWith(fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final hours = hourDataController.text.isNotEmpty ? hourDataController.text : '0';
+                  final minutes = minuteDataController.text.isNotEmpty ? minuteDataController.text : '0';
+                  minvalue = int.parse(hours) * 60 + int.parse(minutes);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+          content: SizedBox(
+            height: 200,
+            child: Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: hourDataController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.deviceManagingMenuSetIntervaldialogHour,
+                    ),
+                    validator: (text) {
+                      final finalText = text ?? '0';
+                      if (finalText.contains('.')) {
+                        return AppLocalizations.of(context)!.deviceManagingMenuSetIntervaldialogFloatMsg;
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: minuteDataController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.deviceManagingMenuSetIntervaldialogMinutes,
+                    ),
+                    validator: (text) {
+                      final finalText = text ?? '0';
+                      if (finalText.contains('.')) {
+                        return AppLocalizations.of(context)!.deviceManagingMenuSetIntervaldialogFloatMsg;
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    return minvalue;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    tokens = [];
+    tickets = [];
+    connectTargetDevice();
+  }
+
+  @override
+  void dispose() {
+    if (isConnected) {
+      isDisconnecting = true;
+      connection?.dispose();
+      connection = null;
+    }
+
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1144,71 +1331,260 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
 
       body: ScrollConfiguration(
         behavior: interface_tools.GlowRemovedBehavior(),
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 150.0,
-              backgroundColor: Theme.of(context).colorScheme.background,
-              elevation: 0.0,
-              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 15, right: 15),
+          child: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 150.0,
+                backgroundColor: Theme.of(context).colorScheme.background,
+                elevation: 0.0,
+                iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
 
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: Text(AppLocalizations.of(context)!.deviceManagingMenuTitle,
-                  style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(AppLocalizations.of(context)!.deviceManagingMenuTitle,
+                    style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 ),
               ),
-            ),
 
-            SliverList(
-              delegate: SliverChildListDelegate([
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/deviceManager/deviceConnection').then((value) {
-                      setState(() {});
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                    height: 70,
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                    height: 130,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: dashboardCardBorderRadius,
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Container(
-                          margin: const EdgeInsets.all(15),
-                          child: CircleAvatar(
-                            child: Icon(
-                                Icons.perm_device_info_outlined,
-                                color: Theme.of(context).colorScheme.tertiary
-                            ),
-                            radius: 22,
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/deviceManager/deviceConnection').then((value) {
+                              setState(() {});
+                            });
+                          },
+
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 8),
+                                child: CircleAvatar(
+                                  child: Icon(
+                                      Icons.perm_device_info_outlined,
+                                      color: Theme.of(context).colorScheme.tertiary
+                                  ),
+                                  radius: 22,
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    applicationSettings['managedDeviceName'] == defaultApplicationSettings['managedDeviceName'] ?
+                                    AppLocalizations.of(context)!.warningsDeviceNotDetected :
+                                    applicationSettings['managedDeviceName']!,
+                                    style: deviceIdStyle,
+                                  ),
+                                  Text(
+                                    applicationSettings['managedDeviceMAC'] == defaultApplicationSettings['managedDeviceMAC'] ?
+                                    '00:00:00:00:00:00' :
+                                    applicationSettings['managedDeviceMAC']!,
+                                    style: deviceIdStyle.copyWith(color: Colors.orange),
+                                  ),
+                                ],
+                              )
+                            ],
                           ),
                         ),
 
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(AppLocalizations.of(context)!.warningsDeviceNotDetected, style: deviceIdStyle),
-                            Text('00:00:00:00:00:00', style: deviceIdStyle.copyWith(color: Colors.orange),)
-                          ],
-                        )
+                        const Divider(),
+
+                        Container(
+                          margin: const EdgeInsets.only(right: 15, left: 15, top: 8),
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Text("${
+                                  AppLocalizations.of(context)!.deviceStatusPrefix
+                              }: ${
+                                  isConnected ?
+                                  AppLocalizations.of(context)!.deviceStatusConnected :
+                                  isConnecting ?
+                                  AppLocalizations.of(context)!.deviceStatusConnecting :
+                                  isDisconnecting ?
+                                  AppLocalizations.of(context)!.deviceStatusDisconnecting :
+                                  AppLocalizations.of(context)!.deviceStatusDisconnected
+                              }", style: deviceIdStyle),
+
+                              Expanded(
+                                child: Container(
+                                  alignment: Alignment.centerRight,
+                                  width: double.infinity,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.refresh_outlined),
+                                    iconSize: 20,
+                                    onPressed: connectTargetDevice,
+                                    padding: const EdgeInsets.only(left: 5),
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ),
 
-                /* ADD NEW DEVICE MANAGING ELEMENT HERE */
+                  GestureDetector(
+                    onTap: () async {
+                      final currentPosition = await weatherDataDownloader.determinePosition();
+                      final latitude = currentPosition.latitude.toString();
+                      final longitude = currentPosition.longitude.toString();
 
-              ]),
-            ),
-          ],
+                      final tokenContent = {
+                        'type': 'set_location',
+                        'args': [latitude, longitude],
+                      };
+
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.location_on_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuSetLocation,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final tokenContent = {
+                        'type': 'refresh',
+                        'args': [],
+                      };
+
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.refresh_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuRefreshWidget,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final minvalue = await showIntervalEditingDialog();
+
+                      if (minvalue != -1) {
+                        final tokenContent = {
+                          'type': 'set_auto_interval',
+                          'args': [minvalue.toString()],
+                        };
+
+                        sendToken(tokenContent);
+                      }
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.timer_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuSetInterval,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  /* ADD NEW DEVICE MANAGING ELEMENT HERE */
+
+                ]),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1252,16 +1628,34 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
               IconButton(
                 icon: const Icon(Icons.check),
                 onPressed: () async {
-                  if (targetResult.device.isBonded) {
-                    showToastMessage(AppLocalizations.of(context)!.deviceBondingAlreadyMsg);
-                  } else {
-                    bool bondResult = await blue_serial.FlutterBluetoothSerial.instance
-                        .bondDeviceAtAddress(getDeviceId(targetResult)) ?? false;
+                  List<String> availableDevices = await readAvaliableDevices();
+                  
+                  if (availableDevices.contains(getDeviceName(targetResult))) {
+                    bool bondResult = true;
+                    final currentDeviceId = applicationSettings['managedDeviceMAC'];
+
+                    if (currentDeviceId != getDeviceId(targetResult)) {
+                      applicationSettings['managedDeviceMAC'] = getDeviceId(targetResult);
+                    }
+
+                    applicationSettings['managedDeviceName'] = getDeviceName(targetResult);
+
+                    if (!targetResult.device.isBonded) {
+                      bondResult = await blue_serial.FlutterBluetoothSerial.instance
+                          .bondDeviceAtAddress(getDeviceId(targetResult)) ?? false;
+                    }
+
                     if (bondResult) {
                       showToastMessage(AppLocalizations.of(context)!.deviceBondingSucceedMsg);
                     } else {
+                      applicationSettings['managedDeviceName'] = defaultApplicationSettings['managedDeviceName']!;
+                      applicationSettings['managedDeviceMAC'] = defaultApplicationSettings['managedDeviceMAC']!;
                       showToastMessage(AppLocalizations.of(context)!.deviceBondingFailedMsg);
                     }
+
+                    saveSettings(applicationSettings);
+                  } else {
+                    showToastMessage(AppLocalizations.of(context)!.deviceNotAvailableMsg);
                   }
 
                   Navigator.of(context).pop();
@@ -1269,7 +1663,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
               ),
             ],
             content: SizedBox(
-              height: 100,
+              height: 110,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1361,84 +1755,91 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
         body: ScrollConfiguration(
           behavior: interface_tools.GlowRemovedBehavior(),
-          child: CustomScrollView(
-            slivers: <Widget>[
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 150.0,
-                backgroundColor: Theme.of(context).colorScheme.background,
-                elevation: 0.0,
-                iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 15, right: 15),
+            child: CustomScrollView(
+              slivers: <Widget>[
+                SliverAppBar(
+                  pinned: true,
+                  expandedHeight: 150.0,
+                  backgroundColor: Theme.of(context).colorScheme.background,
+                  elevation: 0.0,
+                  iconTheme: IconThemeData(color: Theme.of(context).colorScheme.tertiary),
 
-                actions: <Widget>[
-                  IconButton(
-                    icon: Icon(isScanning ? Icons.refresh_outlined : Icons.add,),
-                    tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
-                    onPressed: restartScanning,
-                  ),
-                ],
+                  actions: <Widget>[
+                    IconButton(
+                      icon: Icon(isScanning ? Icons.refresh_outlined : Icons.add,),
+                      tooltip: AppLocalizations.of(context)!.settingsMenuTitle,
+                      onPressed: restartScanning,
+                    ),
+                  ],
 
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: Text(AppLocalizations.of(context)!.deviceConnectionMenuTitle,
-                    style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: true,
+                    title: Text(AppLocalizations.of(context)!.deviceConnectionMenuTitle,
+                      style: appBarStyle.copyWith(color: Theme.of(context).colorScheme.tertiary),
+                    ),
                   ),
                 ),
-              ),
 
-              SliverList(
-                delegate: SliverChildListDelegate(
-                  List.generate(
-                    results.length, (index) {
-                      return GestureDetector(
-                        onTap: () {
-                          if (!isConnecting) {
-                            registerBluetoothDevice(results[index]);
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                          padding: const EdgeInsets.all(15),
-                          height: 70,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: dashboardCardBorderRadius,
-                          ),
+                SliverList(
+                  delegate: SliverChildListDelegate(
+                    List.generate(
+                      results.length, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            if (!isConnecting) {
+                              registerBluetoothDevice(results[index]);
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                            padding: const EdgeInsets.all(15),
+                            height: 70,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
 
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                child: Icon(
-                                  Icons.bluetooth,
-                                  color: Theme.of(context).colorScheme.tertiary,
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  child: Icon(
+                                    Icons.bluetooth,
+                                    color: Theme.of(context).colorScheme.tertiary,
+                                  ),
+                                  radius: 22,
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
                                 ),
-                                radius: 22,
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                              ),
 
-                              Padding(
-                                padding: const EdgeInsets.only(left: 15, right: 15),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(getDeviceName(results[index]), style: deviceIdStyle,),
-                                    Text(getDeviceId(results[index]), style: deviceIdStyle.copyWith(color: Colors.orange),),
-                                  ],
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 15, right: 15),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(getDeviceName(results[index]), style: deviceIdStyle,),
+                                      Text(getDeviceId(results[index]), style: deviceIdStyle.copyWith(color: Colors.orange),),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                  }),
+                        );
+                    }) + [GestureDetector(
+                      child: const Padding(
+                        padding: EdgeInsets.only(bottom: 15),
+                      ),
+                    )],
+                  ),
                 ),
-              ),
 
-              /* ADD NEW DEVICE CONNECTION ELEMENT HERE */
+                /* ADD NEW DEVICE CONNECTION ELEMENT HERE */
 
-            ],
+              ],
+            ),
           ),
         ),
       ),

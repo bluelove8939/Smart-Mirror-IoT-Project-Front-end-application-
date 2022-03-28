@@ -58,6 +58,26 @@ Future<Map<String, String>> readApikeys() async {
 
 
 /*
+ * Methods for reading available devices list
+ *   - readAvaliableDevices: read API keys from File object storing API keys
+ */
+
+Future<List<String>> readAvaliableDevices() async {
+  try {
+    String content = await rootBundle.loadString('assets/available_devices.txt');
+    List<String> parsedContent = [];
+    for (String line in content.split('\n')) {
+      parsedContent.add(line);
+    }
+    return parsedContent;
+  } catch (e) {
+    print('Cannot read available devices list ($e)');
+    return [];
+  }
+}
+
+
+/*
  * Methods for datetime management
  *   - dateTime2String:
  *       convert DateTime to String
@@ -100,7 +120,7 @@ Map<String, String> defaultApplicationSettings = {
   'themeName': 'red',
   'autoSyncActivated': 'true',
   'isLoginInitialized': 'false',
-  'managedDevice': 'default',
+  'managedDeviceName': 'default',
   'managedDeviceMAC': 'default'
 };
 
@@ -509,4 +529,50 @@ Future<void> saveSchedule(String targetDate) async {
     print('Cannot save $targetDate schedule file ($e)');
     return;
   }
+}
+
+
+/*
+ * Token class used for bluetooth communication
+ *   - Description: Defines structure of token sent and received
+ *
+ * Classes
+ *   - TokenSent: Structure of token sent
+ *   - TokenReceived: Struecture of token received
+ */
+
+class TokenSent {
+  final int ticket;
+  final String type;
+  final List args;
+
+  TokenSent(this.ticket, this.type, this.args);
+
+  TokenSent.fromJson(Map<String, dynamic> json)
+      : ticket = json['ticket'], type = json['type'], args = json['args'];
+
+  Map<String, dynamic> toJson() =>
+    {
+      'ticket': ticket,
+      'type': type,
+      'args': args,
+    };
+}
+
+class TokenReceived {
+  final int ticket;
+  final String type;
+  final List args;
+
+  TokenReceived(this.ticket, this.type, this.args);
+
+  TokenReceived.fromJson(Map<String, dynamic> json)
+      : ticket = json['ticket'], type = json['type'], args = json['args'];
+
+  Map<String, dynamic> toJson() =>
+      {
+        'ticket': ticket,
+        'type': type,
+        'args': args
+      };
 }
