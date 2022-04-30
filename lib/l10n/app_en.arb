@@ -55,6 +55,8 @@
   "deviceConnectionErrorMsg": "Cannot connect to the device",
   "deviceDisconnectionRemoteMsg": "Connection terminated by the managed device",
 
+  "deviceManagingMenuMusicDefault": "Unknown music title",
+  "deviceManagingMenuCurrentVolume": "Current volume",
   "deviceManagingMenuSetLocation": "Set device location",
   "deviceManagingMenuRefreshWidget": "Refresh widgets",
   "deviceManagingMenuSetInterval": "Set device refreshing interval",
@@ -62,6 +64,7 @@
   "deviceManagingMenuSetIntervaldialogHour": "Hours",
   "deviceManagingMenuSetIntervaldialogMinutes": "Minutes",
   "deviceManagingMenuSetIntervaldialogFloatMsg": "Hours and minutes cannot be floating number",
+  "deviceManagingMenuAssistant": "Call google assistant",
   "deviceManagingTimeoutMsg": "Request is denied due to timeout",
   "deviceManagingSucceedMsg": "Request succeed",
   "deviceManagingFailedMsg": "Request failed",

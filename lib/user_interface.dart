@@ -1244,6 +1244,10 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
   bool isDisconnecting = false;
   final formKey = GlobalKey<FormState>();
 
+  String musicTitle = 'default';
+  bool musicPlaying = false;
+  int currentVolume = 50;
+
   void onDataReceived(Uint8List data) {
     int backspacesCounter = 0;
     for (var byte in data) {
@@ -1269,20 +1273,25 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
 
     String dataString = String.fromCharCodes(buffer);
     Map<String, dynamic> decodedData = jsonDecode(dataString);
+    print('============= token received: $decodedData');
     final token = TokenReceived.fromJson(decodedData);
 
-    if (tickets[token.ticket] == null) {
+    setState(() {
+      musicTitle = token.args[0];
+      musicPlaying = interface_tools.string2Bool(token.args[1]);
+      currentVolume = token.args[2] == 'default' ? 50 : int.parse(token.args[2]);
+    });
+
+    if (token.ticket != -1 && tickets[token.ticket] == null) {
       if (token.type == 'failed') {
         tickets[token.ticket] = false;
-        showToastMessage(AppLocalizations.of(context)!.deviceManagingFailedMsg);
       } else {
         tickets[token.ticket] = true;
-        showToastMessage(AppLocalizations.of(context)!.deviceManagingSucceedMsg);
       }
     }
   }
 
-  void sendToken(Map<String, dynamic> tokenContent) async {
+  void sendToken(Map<String, dynamic> tokenContent, {bool showSucceedMsg = false}) async {
     if (isConnected && connection != null) {
       final ticket = tickets.length;
       tokenContent['ticket'] = ticket;
@@ -1294,10 +1303,17 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
       connection!.output.add(Uint8List.fromList(utf8.encode(encodedToken)));
       await connection!.output.allSent;
 
-      Future.delayed(const Duration(seconds: 2)).then((value) {
+      Future.delayed(const Duration(seconds: 1)).then((value) {
+        print("========= ticket: $ticket");
         if (tickets[ticket] == null) {
           tickets[ticket] = false;
           showToastMessage(AppLocalizations.of(context)!.deviceManagingTimeoutMsg);
+        } else if (tickets[ticket] == true) {
+          if (showSucceedMsg) {
+            showToastMessage(AppLocalizations.of(context)!.deviceManagingSucceedMsg);
+          }
+        } else {
+          showToastMessage(AppLocalizations.of(context)!.deviceManagingFailedMsg);
         }
       });
     } else {
@@ -1318,6 +1334,10 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
     if (applicationSettings['managedDeviceMAC'] != defaultApplicationSettings['managedDeviceMAC']) {
       blue_serial.BluetoothConnection.toAddress(applicationSettings['managedDeviceMAC']).then((_connection) {
         connection = _connection;
+        sendToken({
+          'type': 'init',
+          'args': [],
+        });
 
         setState(() {
           isConnecting = false;
@@ -1563,6 +1583,209 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
                     ),
                   ),
 
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                    height: 150,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+
+                    child: Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 30,
+                          alignment: Alignment.center,
+                          margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                          child: Text(
+                            musicTitle == 'default' ? AppLocalizations.of(context)!.deviceManagingMenuMusicDefault : musicTitle,
+                            style: widgetDefaultTextStyle,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                          ),
+                        ),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                final tokenContent = {
+                                  'type': 'music_prev',
+                                  'args': [],
+                                };
+
+                                sendToken(tokenContent);
+                              },
+
+                              child: Container(
+                                margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                                child: Icon(
+                                  Icons.skip_previous,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 35,
+                                ),
+                              ),
+                            ),
+
+                            GestureDetector(
+                              onTap: () async {
+                                final tokenContent = {
+                                  'type': 'music_autoplay',
+                                  'args': [],
+                                };
+
+                                sendToken(tokenContent);
+                              },
+
+                              child: Container(
+                                margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                                child: CircleAvatar(
+                                  child: Icon(
+                                    musicPlaying ? Icons.pause : Icons.play_arrow_rounded,
+                                    color: Theme.of(context).colorScheme.tertiary,
+                                    size: 35,
+                                  ),
+                                  radius: 30,
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+
+                            GestureDetector(
+                              onTap: () async {
+                                final tokenContent = {
+                                  'type': 'music_next',
+                                  'args': [],
+                                };
+
+                                sendToken(tokenContent);
+                              },
+
+                              child: Container(
+                                margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                                child: Icon(
+                                  Icons.skip_next,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                    height: 75,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: dashboardCardBorderRadius,
+                    ),
+
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 20),
+                            child: Text(
+                              "${AppLocalizations.of(context)!.deviceManagingMenuCurrentVolume}: $currentVolume",
+                              style: widgetDefaultTextStyle,
+                            ),
+                          ),
+                        ),
+
+                        GestureDetector(
+                          onTap: () async {
+                            final tokenContent = {
+                              'type': 'master_volume_down',
+                              'args': [],
+                            };
+
+                            sendToken(tokenContent);
+                          },
+
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: Icon(
+                              Icons.volume_down_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 35,
+                            ),
+                          ),
+                        ),
+
+                        GestureDetector(
+                          onTap: () async {
+                            final tokenContent = {
+                              'type': 'master_volume_up',
+                              'args': [],
+                            };
+
+                            sendToken(tokenContent);
+                          },
+
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: Icon(
+                              Icons.volume_up_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final tokenContent = {
+                        'type': 'assistant',
+                        'args': [],
+                      };
+
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.assistant_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuAssistant,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   GestureDetector(
                     onTap: () async {
                       final currentPosition = await weatherDataDownloader.determinePosition();
@@ -1574,7 +1797,7 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
                         'args': [latitude, longitude],
                       };
 
-                      sendToken(tokenContent);
+                      sendToken(tokenContent, showSucceedMsg:true);
                     },
 
                     child: Container(
@@ -1616,7 +1839,7 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
                         'args': [],
                       };
 
-                      sendToken(tokenContent);
+                      sendToken(tokenContent, showSucceedMsg:true);
                     },
 
                     child: Container(
@@ -1661,12 +1884,12 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
                           'args': [minvalue.toString()],
                         };
 
-                        sendToken(tokenContent);
+                        sendToken(tokenContent, showSucceedMsg:true);
                       }
                     },
 
                     child: Container(
-                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
                       height: 75,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(

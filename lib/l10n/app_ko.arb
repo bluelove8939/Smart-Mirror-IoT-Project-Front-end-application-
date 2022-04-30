@@ -55,6 +55,8 @@
   "deviceConnectionErrorMsg": "장치에 연결할 수 없습니다",
   "deviceDisconnectionRemoteMsg": "원격 장치에 의해 연결이 해제되었습니다",
 
+  "deviceManagingMenuMusicDefault": "플레이어가 확인되지 않음",
+  "deviceManagingMenuCurrentVolume": "현재 볼륨",
   "deviceManagingMenuSetLocation": "장치 위치를 디바이스와 연동하기",
   "deviceManagingMenuRefreshWidget": "위젯 새로고침하기",
   "deviceManagingMenuSetInterval": "위젯 자동 새로고침 주기 설정하기",
@@ -62,6 +64,7 @@
   "deviceManagingMenuSetIntervaldialogHour": "시간",
   "deviceManagingMenuSetIntervaldialogMinutes": "분",
   "deviceManagingMenuSetIntervaldialogFloatMsg": "정수만 입력 가능합니다",
+  "deviceManagingMenuAssistant": "구글 어시스턴트 호출",
   "deviceManagingTimeoutMsg": "시간초과로 인해 요청을 실행할 수 없습니다",
   "deviceManagingSucceedMsg": "요청에 성공했습니다",
   "deviceManagingFailedMsg": "요청에 실패했습니다",
