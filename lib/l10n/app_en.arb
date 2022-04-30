@@ -72,11 +72,18 @@
 
   "errorsInvokeWeather": "Cannot invoke weather data",
   "errorsInvokeSchedule": "Cannot invoke schedule data",
+  "errorsInvokeSkinCondition": "Cannot invoke skin condition data",
 
   "msgRestartToSaveSettings": "Restart to save the change",
 
   "red": "Red",
   "yellow": "Yellow",
   "dark": "Dark",
-  "light": "Light"
+  "light": "Light",
+
+  "skinConditionTitle": "Skin condition",
+  "skinConditionTodayPrefix": "Today's skin condition",
+  "skinConditionMonthlyTitle": "Monthly statistics",
+  "skinChartXTitle": "Month",
+  "skinChartXSuffix": ""
 }

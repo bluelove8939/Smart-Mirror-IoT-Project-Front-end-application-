@@ -14,21 +14,27 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as blue_
 
 
 // General text styles
+TextStyle dashboardDefaultTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // default dashboard text style
+TextStyle widgetDefaultTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // widget default text style
+
 TextStyle appBarStyle = const TextStyle(fontSize: 18, fontWeight: FontWeight.bold);  // dashboard appbar title
-TextStyle userNameStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard username
+TextStyle userNameStyle = dashboardDefaultTextStyle;  // dashboard username
 TextStyle emailStyle = const TextStyle(fontSize: 14, color: Colors.orange);  // dashboard emails
-TextStyle deviceIdStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard device id
-TextStyle scheduleTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // dashboard schedules widget
-TextStyle errorTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // indicating error messages
+TextStyle deviceIdStyle = dashboardDefaultTextStyle;  // dashboard device id
+TextStyle scheduleTextStyle = dashboardDefaultTextStyle;  // dashboard schedules widget
+TextStyle errorTextStyle = dashboardDefaultTextStyle;  // indicating error messages
 
-TextStyle settingsWidgetTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // settings subtitles
-TextStyle settingsWidgetSelectedTextStyle = const TextStyle(fontSize: 16, color: Colors.orange);  // settings values
+TextStyle settingsWidgetTextStyle = widgetDefaultTextStyle;  // settings subtitles
+TextStyle settingsWidgetSelectedTextStyle = widgetDefaultTextStyle.copyWith(color: Colors.orange);  // settings values
 
-TextStyle scheduleManagerDateTimeTextStyle = const TextStyle(fontSize: 18, color: Colors.black);  // schedule manager datetime
-TextStyle scheduleMagerDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // schedule manger dialog font
+TextStyle scheduleManagerDateTimeTextStyle = widgetDefaultTextStyle.copyWith(fontSize: 18);  // schedule manager datetime
+TextStyle scheduleMagerDialogTextStyle = widgetDefaultTextStyle;  // schedule manger dialog font
 
-TextStyle deviceConnectionDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // device connection page dialog font
-TextStyle deviceManagingDialogTextStyle = const TextStyle(fontSize: 16, color: Colors.black);  // device managing page dialog font
+TextStyle skinConditionWidgetTitleStyle = const TextStyle(fontSize: 18, fontWeight: FontWeight.bold,);
+TextStyle skinConditionWidgetDefault = dashboardDefaultTextStyle;
+
+TextStyle deviceConnectionDialogTextStyle = widgetDefaultTextStyle;  // device connection page dialog font
+TextStyle deviceManagingDialogTextStyle = widgetDefaultTextStyle;  // device managing page dialog font
 
 // General border radius
 Radius generalBorderRadius = const Radius.circular(15);
@@ -37,6 +43,7 @@ BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 // General data managing module
 WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();  // wether data downloader
 ScheduleManager scheduleManager = ScheduleManager();  // download and upload schedule data
+SkinConditionManager skinConditionManager = SkinConditionManager();  // download skin condition data
 
 
 // Toast message method
@@ -111,12 +118,14 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isWeatherDataLoaded = false;
   Future<List> currentScheduleData = Future.value([]);
+  Future<Map> currentSkinConditionData = Future.value({});
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+    currentSkinConditionData = skinConditionManager.extract(DateTime.now(), monthCnt: 10);
   }
 
   @override
@@ -410,7 +419,7 @@ class _HomePageState extends State<HomePage> {
 
                     child: Container(
                       height: 300,
-                      margin: const EdgeInsets.only(top: 15, bottom: 15),
+                      margin: const EdgeInsets.only(top: 15),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
@@ -479,6 +488,115 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                     ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () {
+                      // Navigator.pushNamed(context, '/deviceManager').then((value) {
+                      //   setState(() {});
+                      // });
+                    },
+                    child: FutureBuilder(
+                      future: currentSkinConditionData,
+                      builder: (BuildContext context, AsyncSnapshot snapshot) {
+                        if (snapshot.hasData == false) {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            alignment: Alignment.center,
+                            height: 460,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: const SizedBox(child: CircularProgressIndicator()),
+                          );
+                        }
+                        else if (snapshot.hasError) {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            height: 460,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                AppLocalizations.of(context)!.errorsInvokeSkinCondition,
+                                style: errorTextStyle,
+                              ),
+                            ),
+                          );
+                        }
+                        else {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            height: 460,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  height: 80,
+                                  padding: const EdgeInsets.only(left: 25, right: 25, top: 20, bottom: 12),
+                                  alignment: Alignment.centerLeft,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Text(
+                                          AppLocalizations.of(context)!.skinConditionTitle,
+                                          style: skinConditionWidgetTitleStyle,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${AppLocalizations.of(context)!.skinConditionTodayPrefix}: ${snapshot.data['daily']}",
+                                        style: skinConditionWidgetDefault,
+                                      )
+                                    ],
+                                  ),
+                                ),
+
+                                const Divider(),
+
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.only(left: 25, right: 25, top: 12, bottom: 20),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 30),
+                                          child: Text(
+                                            AppLocalizations.of(context)!.skinConditionMonthlyTitle,
+                                            style: skinConditionWidgetTitleStyle,
+                                          ),
+                                        ),
+                                        AspectRatio(
+                                          aspectRatio: 2 / 2,
+                                          child: interface_tools.generateMonthlyDataChart(
+                                            snapshot.data['monthly'],
+                                            AppLocalizations.of(context)!.skinChartXTitle,
+                                            AppLocalizations.of(context)!.skinChartXSuffix,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    )
                   ),
 
                   /* ADD NEW DASHBOARD ELEMENT HERE */

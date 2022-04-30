@@ -342,6 +342,8 @@ Future<void> logoutActivation() async {
 
 const String rootDirName = "Ice Cream Hub";  // Root directory name
 const String scheduleDirName = "Schedules";  // Schedule directory name
+const String skinConditionDirName = "Skin Conditions";  // Skin condition directory name
+const String skinConditionFileName = "skinconditions.json";  // Skin condition file name
 const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
 const String textContentType = "text/plain; charset=UTF-8";  // Text file mimetype (encoded as UTF-8)
 Map<String, List> cachedScheduleData = {};
@@ -473,6 +475,125 @@ class ScheduleManager {
     } catch (e) {
       return Future.error('Cannot upload schedule of $targetDate due to fatal error ($e)');
     }
+  }
+}
+
+
+class SkinConditionManager {
+  Future<String> findSkinConditionDirID() async {
+    try {
+      String? rootDirID;      // root directory ID
+      String? skinConditionDirID;  // schedule directory ID
+
+      // Find out root directory ID
+      final rootDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$rootDirName' and trashed = false",
+      );
+
+      print("========== ${rootDirList.files!.isEmpty}");
+
+      if (rootDirList.files!.isEmpty) {  // If there's no root directory, make new one
+        final rootDirFile = drive.File();
+        rootDirFile.name = rootDirName;
+        rootDirFile.mimeType = folderMimeType;
+        final result = await driveApi!.files.create(rootDirFile);
+        rootDirID = result.id;
+      } else {
+        rootDirID = rootDirList.files!.first.id!;
+      }
+
+      // Find out schedule directory ID
+      final skinConditionDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$skinConditionDirName' and trashed = false and '$rootDirID' in parents",
+      );
+
+      if (skinConditionDirList.files!.isEmpty) {  // If there's no schedule directory, make new one
+        final scheduleDirFile = drive.File();
+        scheduleDirFile.name = scheduleDirName;
+        scheduleDirFile.mimeType = folderMimeType;
+        scheduleDirFile.parents = [rootDirID!];
+        final result = await driveApi!.files.create(scheduleDirFile);
+        skinConditionDirID = result.id;
+      } else {
+        skinConditionDirID = skinConditionDirList.files!.first.id!;
+      }
+
+      return skinConditionDirID!;
+    } catch (e) {
+      return Future.error('Schedule directory not defined due to fatal error ($e)');
+    }
+  }
+
+  Future<Map> download() async {
+    try {
+      // Find out target text file
+      final skinconditionDirID = await findSkinConditionDirID();
+      final targetFileList = await driveApi!.files.list(spaces: 'drive',
+        q: "name = '$skinConditionFileName' and trashed = false and '$skinconditionDirID' in parents",
+      );
+
+      print("========== skin condition directory ID: $skinconditionDirID");
+
+      if (targetFileList.files!.isEmpty) { return {}; }  // return empty list if there's no target file
+
+      final targetFileID = targetFileList.files!.first.id;
+
+      print("========== target file ID: $targetFileID");
+
+      // Send HTTP reauest to Google drive API v3
+      http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
+      String targetContent = utf8.decode(req.bodyBytes);
+
+      print("========== http response: ${req.bodyBytes}");
+      print("========== decoded respopnse: $targetContent");
+
+      // Parse response
+      Map parsedTargetContent = jsonDecode(targetContent);
+
+      return parsedTargetContent;
+    } catch (e) {
+      return Future.error('Cannot download skin condition data due to fatal error ($e)');
+    }
+  }
+
+  Future<Map> extract(DateTime targetDate, {int monthCnt = 10}) async {
+    Map content = await download();
+    Map result = {
+      'daily': 0,
+      'monthly': {},
+    };
+    String targetString = dateTime2String(targetDate);
+
+    // Extract skin condition of targetDate
+    if (content.containsKey('daily') && content['daily'].containsKey(targetString)) {
+      List targetData = content['daily'][targetString];
+      result['daily'] = (targetData.reduce((value, element) => value + element) / targetData.length).ceil().toString();
+    }
+
+    // Extract monthly skin condition
+    if (!content.containsKey('monthly')) {
+      result['monthly'] = List.filled(monthCnt, 0);
+    } else {
+      int targetYear = targetDate.year;
+      int targetMonth = targetDate.month;
+      for (int i = 0; i < monthCnt; i++) {
+        if (content['monthly'].containsKey("$targetYear-$targetMonth")) {
+          int val = content['monthly']["$targetYear-$targetMonth"][0];
+          int cnt = content['monthly']["$targetYear-$targetMonth"][1];
+          result['monthly']["$targetYear-$targetMonth"] = (val / cnt).ceil().toString();
+        } else {
+          result['monthly']["$targetYear-$targetMonth"] = '0';
+        }
+
+        targetMonth -= 1;
+        if (targetMonth == 0) {
+          targetYear -= 1;
+          targetMonth = 12;
+        }
+      }
+    }
+
+    return result;
   }
 }
 

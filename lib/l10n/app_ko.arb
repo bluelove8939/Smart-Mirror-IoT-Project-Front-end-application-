@@ -72,11 +72,18 @@
 
   "errorsInvokeWeather": "날씨 데이터를 불러올 수 없습니다",
   "errorsInvokeSchedule": "일정 데이터를 불러올 수 없습니다",
+  "errorsInvokeSkinCondition": "피부 상태 데이터를 불러올 수 없습니다",
 
   "msgRestartToSaveSettings": "변경 사항을 저장하기 위해 앱을 재시작하세요",
 
   "red": "빨강",
   "yellow": "노랑",
   "dark": "다크",
-  "light": "라이트"
+  "light": "라이트",
+
+  "skinConditionTitle": "피부 상태 알림",
+  "skinConditionTodayPrefix": "오늘의 피부 상태",
+  "skinConditionMonthlyTitle": "월간 통계",
+  "skinChartXTitle": "월",
+  "skinChartXSuffix": "월"
 }
