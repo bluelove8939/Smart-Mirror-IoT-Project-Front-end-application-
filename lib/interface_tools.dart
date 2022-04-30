@@ -24,7 +24,15 @@ class GlowRemovedBehavior extends ScrollBehavior {
 Widget generateMonthlyDataChart(Map monthlyData, String xTitle, String xSuffix) {
   print("============== monthlyData: $monthlyData");
   List dataKeys = monthlyData.keys.toList();
-  dataKeys.sort();
+  dataKeys.sort((a, b) {
+    List aParsed = a.split('-');
+    List bParsed = b.split('-');
+
+    if (aParsed[0] == bParsed[0]) {
+      return int.parse(aParsed[1]).compareTo(int.parse(bParsed[1]));
+    }
+    return int.parse(aParsed[0]).compareTo(int.parse(bParsed[0]));
+  });
   dataKeys = dataKeys.sublist(dataKeys.length - 7);
 
   final chartData = LineChartData(
@@ -85,7 +93,7 @@ Widget generateMonthlyDataChart(Map monthlyData, String xTitle, String xSuffix) 
                   fontSize: 14);
               String titleValue = '';
 
-              if (value.isFinite && 0 < value.toInt() && value.toInt() <= 100) {
+              if (value.isFinite && 0 <= value.toInt() && value.toInt() <= 100) {
                 titleValue = (value.toInt()).toString();
               }
 
