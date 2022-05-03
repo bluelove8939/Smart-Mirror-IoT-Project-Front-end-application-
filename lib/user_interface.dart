@@ -1788,6 +1788,92 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
 
                   GestureDetector(
                     onTap: () async {
+                      final tokenContent = {
+                        'type': 'moisture',
+                        'args': [],
+                      };
+
+                      showToastMessage(AppLocalizations.of(context)!.deviceManagingMenuSkinDialog);
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.water_drop_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuSkin,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final tokenContent = {
+                        'type': 'play_music_by_emotion',
+                        'args': [],
+                      };
+
+                      showToastMessage(AppLocalizations.of(context)!.deviceManagingMenuEmotionDialog);
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.face_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuEmotion,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
                       final currentPosition = await weatherDataDownloader.determinePosition();
                       final latitude = currentPosition.latitude.toString();
                       final longitude = currentPosition.longitude.toString();
