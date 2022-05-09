@@ -41,6 +41,7 @@ dependencies:
   flutter_blue: ^0.8.0
   flutter_bluetooth_serial: ^0.4.0
   fl_chart: ^0.50.1
+  webview_flutter: ^3.0.2
 
 
   # The following adds the Cupertino Icons font to your application.

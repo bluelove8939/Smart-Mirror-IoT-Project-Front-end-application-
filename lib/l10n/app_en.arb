@@ -92,5 +92,9 @@
   "skinConditionTodayPrefix": "Today's skin condition",
   "skinConditionMonthlyTitle": "Monthly statistics",
   "skinChartXTitle": "Month",
-  "skinChartXSuffix": ""
+  "skinChartXSuffix": "",
+
+  "styleRecomTitle": "Style recommendation",
+  "styleRecomRefreshDatetimePrefix": "refreshed date",
+  "styleRecomNoDataWarning": "No data available"
 }

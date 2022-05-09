@@ -344,6 +344,8 @@ const String rootDirName = "Ice Cream Hub";  // Root directory name
 const String scheduleDirName = "Schedules";  // Schedule directory name
 const String skinConditionDirName = "Skin Conditions";  // Skin condition directory name
 const String skinConditionFileName = "skinconditions.json";  // Skin condition file name
+const String styleDirName = "Styles";  // Style data directory name
+const String styleFileName = "styles.json";  // Style data file name
 const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
 const String textContentType = "text/plain; charset=UTF-8";  // Text file mimetype (encoded as UTF-8)
 Map<String, List> cachedScheduleData = {};
@@ -508,11 +510,11 @@ class SkinConditionManager {
       );
 
       if (skinConditionDirList.files!.isEmpty) {  // If there's no schedule directory, make new one
-        final scheduleDirFile = drive.File();
-        scheduleDirFile.name = scheduleDirName;
-        scheduleDirFile.mimeType = folderMimeType;
-        scheduleDirFile.parents = [rootDirID!];
-        final result = await driveApi!.files.create(scheduleDirFile);
+        final skinConditionDirFile = drive.File();
+        skinConditionDirFile.name = skinConditionDirName;
+        skinConditionDirFile.mimeType = folderMimeType;
+        skinConditionDirFile.parents = [rootDirID!];
+        final result = await driveApi!.files.create(skinConditionDirFile);
         skinConditionDirID = result.id;
       } else {
         skinConditionDirID = skinConditionDirList.files!.first.id!;
@@ -594,6 +596,94 @@ class SkinConditionManager {
     }
 
     return result;
+  }
+}
+
+
+class StyleRecommendationManager {
+  Future<String> findStyleDirID() async {
+    try {
+      String? rootDirID;   // root directory ID
+      String? styleDirID;  // style data directory ID
+
+      // Find out root directory ID
+      final rootDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$rootDirName' and trashed = false",
+      );
+
+      print("========== ${rootDirList.files!.isEmpty}");
+
+      if (rootDirList.files!.isEmpty) {  // If there's no root directory, make new one
+        final rootDirFile = drive.File();
+        rootDirFile.name = rootDirName;
+        rootDirFile.mimeType = folderMimeType;
+        final result = await driveApi!.files.create(rootDirFile);
+        rootDirID = result.id;
+      } else {
+        rootDirID = rootDirList.files!.first.id!;
+      }
+
+      // Find out schedule directory ID
+      final styleDirList = await driveApi!.files.list(spaces: 'drive',
+        q: "mimeType = '$folderMimeType' and name = '$styleDirName' and trashed = false and '$rootDirID' in parents",
+      );
+
+      if (styleDirList.files!.isEmpty) {  // If there's no schedule directory, make new one
+        final styleDirFile = drive.File();
+        styleDirFile.name = scheduleDirName;
+        styleDirFile.mimeType = folderMimeType;
+        styleDirFile.parents = [rootDirID!];
+        final result = await driveApi!.files.create(styleDirFile);
+        styleDirID = result.id;
+      } else {
+        styleDirID = styleDirList.files!.first.id!;
+      }
+
+      return styleDirID!;
+    } catch (e) {
+      return Future.error('Schedule directory not defined due to fatal error ($e)');
+    }
+  }
+
+  Future<Map> download() async {
+    try {
+      // Find out target text file
+      final styleDirID = await findStyleDirID();
+      final targetFileList = await driveApi!.files.list(spaces: 'drive',
+        q: "name = '$styleFileName' and trashed = false and '$styleDirID' in parents",
+      );
+
+      print("========== style directory ID: $styleDirID");
+
+      if (targetFileList.files!.isEmpty) { return {}; }  // return empty list if there's no target file
+
+      final targetFileID = targetFileList.files!.first.id;
+
+      print("========== target file ID: $targetFileID");
+
+      // Send HTTP reauest to Google drive API v3
+      http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
+      String targetContent = utf8.decode(req.bodyBytes);
+
+      print("========== http response: ${req.bodyBytes}");
+      print("========== decoded respopnse: $targetContent");
+
+      // Parse response
+      Map parsedTargetContent = jsonDecode(targetContent);
+      List extractedUrls = [];
+
+      for (int i = 1; i <= 10; i++) {
+        if (parsedTargetContent['body'].containsKey(i.toString())) {
+          extractedUrls.add(parsedTargetContent['body'][i.toString()]);
+        }
+      }
+
+      parsedTargetContent['body'] = extractedUrls;
+
+      return parsedTargetContent;
+    } catch (e) {
+      return Future.error('Cannot download style recommendation data due to fatal error ($e)');
+    }
   }
 }
 

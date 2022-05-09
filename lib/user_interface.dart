@@ -11,6 +11,7 @@ import 'package:iot_project_demo/data_managers.dart';
 import 'package:iot_project_demo/interface_tools.dart' as interface_tools;
 import 'package:iot_project_demo/color_themes_presets.dart' as color_themes_presets;
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as blue_serial;  // Bluetooth setial (classical bluetooth protocol, RFCOMM)
+import 'package:webview_flutter/webview_flutter.dart';
 
 
 // General text styles
@@ -44,6 +45,7 @@ BorderRadius dashboardCardBorderRadius = BorderRadius.all(generalBorderRadius);
 WeatherDataDownloader weatherDataDownloader = WeatherDataDownloader();  // wether data downloader
 ScheduleManager scheduleManager = ScheduleManager();  // download and upload schedule data
 SkinConditionManager skinConditionManager = SkinConditionManager();  // download skin condition data
+StyleRecommendationManager styleRecommendationManager = StyleRecommendationManager();  // downloads style recommendation data
 
 
 // Toast message method
@@ -92,6 +94,7 @@ class App extends StatelessWidget {
         '/schedules': (context) => const SchedulePage(),
         '/deviceManager': (context) => const DeviceManagingPage(),
         '/deviceManager/deviceConnection': (context) => const DeviceConnectionPage(),
+        '/webviewPage': (context) => const WebviewPage(),
       },
 
       // application localization
@@ -119,6 +122,7 @@ class _HomePageState extends State<HomePage> {
   bool isWeatherDataLoaded = false;
   Future<List> currentScheduleData = Future.value([]);
   Future<Map> currentSkinConditionData = Future.value({});
+  Future<Map> currentStyleData = Future.value({});
 
   @override
   void initState() {
@@ -126,6 +130,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
     currentSkinConditionData = skinConditionManager.extract(DateTime.now(), monthCnt: 10);
+    currentStyleData = styleRecommendationManager.download();
   }
 
   @override
@@ -501,7 +506,7 @@ class _HomePageState extends State<HomePage> {
                       builder: (BuildContext context, AsyncSnapshot snapshot) {
                         if (snapshot.hasData == false) {
                           return Container(
-                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            margin: const EdgeInsets.only(top: 15),
                             alignment: Alignment.center,
                             height: 460,
                             decoration: BoxDecoration(
@@ -513,7 +518,7 @@ class _HomePageState extends State<HomePage> {
                         }
                         else if (snapshot.hasError) {
                           return Container(
-                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            margin: const EdgeInsets.only(top: 15),
                             height: 460,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
@@ -531,7 +536,7 @@ class _HomePageState extends State<HomePage> {
                         }
                         else {
                           return Container(
-                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            margin: const EdgeInsets.only(top: 15),
                             height: 460,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
@@ -599,6 +604,127 @@ class _HomePageState extends State<HomePage> {
                     )
                   ),
 
+                  GestureDetector(
+                    onTap: () {
+                      // Navigator.pushNamed(context, '/deviceManager').then((value) {
+                      //   setState(() {});
+                      // });
+                    },
+                    child: FutureBuilder(
+                      future: currentStyleData,
+                      builder: (BuildContext context, AsyncSnapshot snapshot) {
+                        if (snapshot.hasData == false) {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            alignment: Alignment.center,
+                            height: 460,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: const SizedBox(child: CircularProgressIndicator()),
+                          );
+                        }
+                        else if (snapshot.hasError) {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            height: 460,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                AppLocalizations.of(context)!.errorsInvokeSkinCondition,
+                                style: errorTextStyle,
+                              ),
+                            ),
+                          );
+                        }
+                        else {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 15, bottom: 15),
+                            height: 460,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: dashboardCardBorderRadius,
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  height: 80,
+                                  padding: const EdgeInsets.only(left: 25, right: 25, top: 20, bottom: 12),
+                                  alignment: Alignment.centerLeft,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Text(
+                                          AppLocalizations.of(context)!.styleRecomTitle,
+                                          style: skinConditionWidgetTitleStyle,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${AppLocalizations.of(context)!.styleRecomRefreshDatetimePrefix}: ${snapshot.data['date']}",
+                                        style: skinConditionWidgetDefault,
+                                      )
+                                    ],
+                                  ),
+                                ),
+
+                                const Divider(),
+
+                                Container(
+                                  padding: const EdgeInsets.only(left: 25, right: 25, top: 22, bottom: 12),
+                                  alignment: Alignment.centerLeft,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: snapshot.data['body'].length > 0 ? List<Widget>.generate(
+                                      snapshot.data['body'].length, (int index) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(bottom: 12),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              Navigator.pushNamed(
+                                                context, '/webviewPage',
+                                                arguments: WebviewArguments(
+                                                  snapshot.data['body'][index],
+                                                ),
+                                              ).then((value) {
+                                                setState(() {});
+                                              });
+                                            },
+
+                                            child: Text(
+                                              snapshot.data['body'][index],
+                                              style: dashboardDefaultTextStyle,
+                                              softWrap: false,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    ) : [
+                                      Text(
+                                        AppLocalizations.of(context)!.styleRecomNoDataWarning,
+                                        style: dashboardDefaultTextStyle,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+
                   /* ADD NEW DASHBOARD ELEMENT HERE */
 
                 ]),
@@ -610,6 +736,37 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+
+class WebviewArguments {
+  final String weburl;
+
+  WebviewArguments(this.weburl);
+}
+
+class WebviewPage extends StatefulWidget {
+  const WebviewPage({Key? key}) : super(key: key);
+
+  @override
+  State<WebviewPage> createState() => _WebviewPageState();
+}
+
+class _WebviewPageState extends State<WebviewPage> {
+  @override
+  Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as WebviewArguments;
+
+    return Scaffold(
+      body: SafeArea(
+        child: WebView(
+          initialUrl: args.weburl,
+          javascriptMode: JavascriptMode.unrestricted,
+        ),
+      ),
+    );
+  }
+}
+
 
 
 /*

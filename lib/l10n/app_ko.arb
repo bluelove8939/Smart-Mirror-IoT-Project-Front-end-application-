@@ -92,5 +92,9 @@
   "skinConditionTodayPrefix": "오늘의 피부 상태",
   "skinConditionMonthlyTitle": "월간 통계",
   "skinChartXTitle": "월",
-  "skinChartXSuffix": "월"
+  "skinChartXSuffix": "월",
+
+  "styleRecomTitle": "스타일 추천",
+  "styleRecomRefreshDatetimePrefix": "업로드된 날짜",
+  "styleRecomNoDataWarning": "데이터가 없습니다"
 }
