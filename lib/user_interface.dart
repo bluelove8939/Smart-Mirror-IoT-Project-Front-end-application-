@@ -157,7 +157,9 @@ class _HomePageState extends State<HomePage> {
                   tooltip: AppLocalizations.of(context)!.homePageRefreshTooltip,
                   onPressed: () {
                     setState(() {
-
+                      currentScheduleData = readSchedule(dateTime2String(DateTime.now()));
+                      currentSkinConditionData = skinConditionManager.extract(DateTime.now(), monthCnt: 10);
+                      currentStyleData = styleRecommendationManager.download();
                     });
                   },
                 ),
@@ -684,7 +686,7 @@ class _HomePageState extends State<HomePage> {
                                   alignment: Alignment.centerLeft,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: snapshot.data['body'].length > 0 ? List<Widget>.generate(
                                       snapshot.data['body'].length, (int index) {
                                         return Padding(
@@ -1249,7 +1251,7 @@ class _SchedulePageState extends State<SchedulePage> {
                                       if (!cachedScheduleData.keys.contains(stringCurrentDateTime)) {
                                         cachedScheduleData[stringCurrentDateTime] = [edited.toList()];
                                       } else {
-                                        cachedScheduleData[stringCurrentDateTime]![index] = edited.toList();
+                                        cachedScheduleData[stringCurrentDateTime]!.add(edited.toList());
                                       }
 
                                       if (!dirtyScheduleDateTime.contains(stringCurrentDateTime)) {
@@ -2022,6 +2024,49 @@ class _DeviceManagingPageState extends State<DeviceManagingPage> {
 
                           Text(
                             AppLocalizations.of(context)!.deviceManagingMenuEmotion,
+                            style: deviceIdStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final tokenContent = {
+                        'type': 'style',
+                        'args': [],
+                      };
+
+                      showToastMessage(AppLocalizations.of(context)!.deviceManagingMenuStyleRecomDialog);
+                      sendToken(tokenContent);
+                    },
+
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(0, 15, 0, 0),
+                      height: 75,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: dashboardCardBorderRadius,
+                      ),
+
+                      child: Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 15, left: 15, right: 15, bottom: 15),
+                            child: CircleAvatar(
+                              child: Icon(
+                                  Icons.style_outlined,
+                                  color: Theme.of(context).colorScheme.tertiary
+                              ),
+                              radius: 22,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+
+                          Text(
+                            AppLocalizations.of(context)!.deviceManagingMenuStyleRecom,
                             style: deviceIdStyle,
                           ),
                         ],

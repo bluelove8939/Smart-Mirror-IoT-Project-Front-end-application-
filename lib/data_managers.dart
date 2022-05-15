@@ -344,6 +344,7 @@ const String rootDirName = "Ice Cream Hub";  // Root directory name
 const String scheduleDirName = "Schedules";  // Schedule directory name
 const String skinConditionDirName = "Skin Conditions";  // Skin condition directory name
 const String skinConditionFileName = "skinconditions.json";  // Skin condition file name
+const String logsFileName = "logs.json";  // update log file name
 const String styleDirName = "Styles";  // Style data directory name
 const String styleFileName = "styles.json";  // Style data file name
 const String folderMimeType = "application/vnd.google-apps.folder";  // Folder mimetype
@@ -352,6 +353,9 @@ Map<String, List> cachedScheduleData = {};
 List<String> dirtyScheduleDateTime = [];
 
 class ScheduleManager {
+  final String uploadFailureCode = 'UPLOAD_FAILED';
+  final String downloadFailureCode = 'DOWNLOAD_FAILED';
+
   Future<String> findScheduleDirID() async {
     try {
       String? rootDirID;      // root directory ID
@@ -409,20 +413,13 @@ class ScheduleManager {
         q: "name = '$targetDate.csv' and trashed = false and '$scheduleDirID' in parents",
       );
 
-      print("========== schedule directory ID: $scheduleDirID");
-
       if (targetFileList.files!.isEmpty) { return []; }  // return empty list if there's no target file
 
       final targetFileID = targetFileList.files!.first.id;
 
-      print("========== target file ID: $targetFileID");
-
       // Send HTTP reauest to Google drive API v3
       http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
       String targetContent = utf8.decode(req.bodyBytes);
-
-      print("========== http response: ${req.bodyBytes}");
-      print("========== decoded respopnse: $targetContent");
 
       // Parse response
       List parsedTargetContent = [];
@@ -472,11 +469,163 @@ class ScheduleManager {
       final result = await driveApi!.files.create(targetFile, uploadMedia: media,);
 
       print("Upload file ${targetFile.name} as file id  ${result.id}");
+      // uploadLog(targetDate);
+    } catch (e) {
+      saveFaliure(targetDate, uploadFailureCode);
+      return Future.error('Cannot upload schedule of $targetDate due to fatal error ($e)');
+    }
+  }
+
+  Future<void> uploadLog(String targetDate) async {
+    try {
+      // Find out target file ID and read the content
+      final scheduleDirID = await findScheduleDirID();
+      final targetFileList = await driveApi!.files.list(spaces: 'drive',
+        q: "name = '$logsFileName' and trashed = false and '$scheduleDirID' in parents",
+      );
+
+      Map targetContent = {};
+      if (targetFileList.files!.isNotEmpty) {
+        final targetFileID = targetFileList.files!.first.id;
+        http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
+        targetContent = json.decode(utf8.decode(req.bodyBytes));
+      }
+
+      // Delete all existing logfiles
+      while (targetFileList.files!.isNotEmpty) {
+        driveApi!.files.delete(targetFileList.files!.first.id!);
+        targetFileList.files!.removeAt(0);
+      }
+
+      // Update logs
+      String logtime = dateTime2String(DateTime.now());
+      if (targetContent.containsKey(logtime)) {
+        if (!targetContent[logtime].contains(targetDate)) {
+          targetContent[logtime].add(targetDate);
+        }
+      } else {
+        targetContent[logtime] = [targetDate];
+      }
+
+      // Define new logfile
+      final targetFile = drive.File();
+      targetFile.name = logsFileName;
+      targetFile.parents = [scheduleDirID];
+      List<int> encodedContents = utf8.encode(json.encode(targetContent));
+
+      // Transfer encoded content via Google drive API
+      Stream<List<int>> mediaStream = Future.value(encodedContents).asStream().asBroadcastStream();
+      var media = drive.Media(mediaStream, encodedContents.length, contentType: textContentType);
+      final result = await driveApi!.files.create(targetFile, uploadMedia: media,);
+
+      print("Update logs of $targetDate(modified at $logtime): ${targetFile.name} as file id  ${result.id}");
 
       return;
     } catch (e) {
-      return Future.error('Cannot upload schedule of $targetDate due to fatal error ($e)');
+      return Future.error('Cannot update log of modified file named $targetDate.csv due to fatal error ($e)');
     }
+  }
+
+  Future<void> saveFaliure(String targetDate, String failureCode) async {
+    final schedulePath = await scheduleDirectoryPath();
+
+    try {
+      File targetFile = File("$schedulePath/failure.json");
+      String content = await targetFile.readAsString(encoding: utf8);
+      Map<String, dynamic> parsedContent = json.decode(content);
+
+      if (!parsedContent.containsKey(failureCode)) {
+        parsedContent[failureCode] = [];
+      }
+      if (!parsedContent[failureCode]!.contains(targetDate)) {
+        parsedContent[failureCode].add(targetDate);
+      }
+      print("==============failures: $parsedContent");
+
+      targetFile.writeAsString(json.encode(parsedContent), encoding: utf8);
+    } catch (e) {
+      print('Cannot save failure ($e)');
+    }
+  }
+
+  Future<void> restoreAllFailure() async {
+    final schedulePath = await scheduleDirectoryPath();
+
+    try {
+      File targetFile = File("$schedulePath/failure.json");
+      String content = await targetFile.readAsString(encoding: utf8);
+      Map<String, dynamic> parsedContent = json.decode(content);
+
+      for (String failCode in parsedContent.keys) {
+        if (failCode == uploadFailureCode) {
+          for (String targetDate in parsedContent[failCode]) {
+            print("========= restoring failure: $failCode of $targetDate");
+            List scheduleContent = await readSchedule(targetDate);
+            upload(targetDate, scheduleContent);
+          }
+          parsedContent[failCode] = [];
+        }
+      }
+
+      targetFile.writeAsString(json.encode(parsedContent), encoding: utf8);
+    } catch (e) {
+      print('Cannot restore failure ($e)');
+    }
+  }
+}
+
+
+/*
+ * Methods for reading and saving schedules at local storages
+ *
+ * Methods
+ *   - scheduleFile:
+ *       find out path toward target schedule file
+ *   - readSchedule:
+ *       read schedules and store the data as cached data
+ *   - saveSchedule:
+ *       save cached schedules
+ */
+
+Future<File> scheduleFile(String targetDate) async {
+  final schedulePath = await scheduleDirectoryPath();
+  return File('$schedulePath/$targetDate.csv');
+}
+
+Future<List> readSchedule(String targetDate) async {
+  try {
+    File targetFile = await scheduleFile(targetDate);
+    String content = await targetFile.readAsString(encoding: utf8);
+    List parsedContent = [];
+    for (String line in content.split('\n')) {
+      List<String> commaParsed = line.split(',');
+      if (commaParsed.length == 2) {
+        parsedContent.add(commaParsed);
+      }
+    }
+    cachedScheduleData[targetDate] = [...parsedContent];
+    return parsedContent;
+  } catch (e) {
+    print('Cannot read $targetDate schedule file ($e)');
+    return [];
+  }
+}
+
+Future<void> saveSchedule(String targetDate) async {
+  try {
+    File targetFile = await scheduleFile(targetDate);
+    if (cachedScheduleData.keys.contains(targetDate)) {
+      List lines = [];
+      for (List commaParsed in cachedScheduleData[targetDate]!) {
+        if (commaParsed.length == 2) {
+          lines.add('${commaParsed[0]},${commaParsed[1]}');
+        }
+      }
+      targetFile.writeAsString(lines.join('\n'), encoding: utf8);
+    }
+  } catch (e) {
+    print('Cannot save $targetDate schedule file ($e)');
+    return;
   }
 }
 
@@ -684,61 +833,6 @@ class StyleRecommendationManager {
     } catch (e) {
       return Future.error('Cannot download style recommendation data due to fatal error ($e)');
     }
-  }
-}
-
-
-/*
- * Methods for reading and saving schedules at local storages
- *
- * Methods
- *   - scheduleFile:
- *       find out path toward target schedule file
- *   - readSchedule:
- *       read schedules and store the data as cached data
- *   - saveSchedule:
- *       save cached schedules
- */
-
-Future<File> scheduleFile(String targetDate) async {
-  final schedulePath = await scheduleDirectoryPath();
-  return File('$schedulePath/$targetDate.csv');
-}
-
-Future<List> readSchedule(String targetDate) async {
-  try {
-    File targetFile = await scheduleFile(targetDate);
-    String content = await targetFile.readAsString(encoding: utf8);
-    List parsedContent = [];
-    for (String line in content.split('\n')) {
-      List<String> commaParsed = line.split(',');
-      if (commaParsed.length == 2) {
-        parsedContent.add(commaParsed);
-      }
-    }
-    cachedScheduleData[targetDate] = parsedContent;
-    return parsedContent;
-  } catch (e) {
-    print('Cannot read $targetDate schedule file ($e)');
-    return [];
-  }
-}
-
-Future<void> saveSchedule(String targetDate) async {
-  try {
-    File targetFile = await scheduleFile(targetDate);
-    if (cachedScheduleData.keys.contains(targetDate)) {
-      List lines = [];
-      for (List commaParsed in cachedScheduleData[targetDate]!) {
-        if (commaParsed.length == 2) {
-          lines.add('${commaParsed[0]},${commaParsed[1]}');
-        }
-      }
-      targetFile.writeAsString(lines.join('\n'), encoding: utf8);
-    }
-  } catch (e) {
-    print('Cannot save $targetDate schedule file ($e)');
-    return;
   }
 }
 

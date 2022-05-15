@@ -69,6 +69,8 @@
   "deviceManagingMenuSkinDialog": "피부 센서와 피부를 접촉시키세요",
   "deviceManagingMenuEmotion": "표정 분석을 통해 음악 재생하기",
   "deviceManagingMenuEmotionDialog": "스마트 미러 카메라에 얼굴을 비추세요",
+  "deviceManagingMenuStyleRecom": "스타일 추천받기",
+  "deviceManagingMenuStyleRecomDialog": "스마트 미러 카메라에 전신을 비추세요",
   "deviceManagingTimeoutMsg": "시간초과로 인해 요청을 실행할 수 없습니다",
   "deviceManagingSucceedMsg": "요청에 성공했습니다",
   "deviceManagingFailedMsg": "요청에 실패했습니다",
