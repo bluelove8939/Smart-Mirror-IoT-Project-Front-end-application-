@@ -565,7 +565,7 @@ class _HomePageState extends State<HomePage> {
                                       Text(
                                         "${AppLocalizations.of(context)!.skinConditionTodayPrefix}: ${snapshot.data['daily']}",
                                         style: skinConditionWidgetDefault,
-                                      )
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -684,10 +684,10 @@ class _HomePageState extends State<HomePage> {
                                 Container(
                                   padding: const EdgeInsets.only(left: 25, right: 25, top: 22, bottom: 12),
                                   alignment: Alignment.centerLeft,
-                                  child: Column(
+                                  child: snapshot.data['body'].length > 0 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: snapshot.data['body'].length > 0 ? List<Widget>.generate(
+                                    children: List<Widget>.generate(
                                       snapshot.data['body'].length, (int index) {
                                         return Padding(
                                           padding: const EdgeInsets.only(bottom: 12),
@@ -711,12 +711,15 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                         );
                                       }
-                                    ) : [
-                                      Text(
-                                        AppLocalizations.of(context)!.styleRecomNoDataWarning,
-                                        style: dashboardDefaultTextStyle,
-                                      ),
-                                    ],
+                                    ),
+                                  ) : Container(
+                                    width: double.infinity,
+                                    height: 300,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      AppLocalizations.of(context)!.styleRecomNoDataWarning,
+                                      style: dashboardDefaultTextStyle,
+                                    ),
                                   ),
                                 ),
                               ],

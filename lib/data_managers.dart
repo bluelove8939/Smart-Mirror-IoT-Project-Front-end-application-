@@ -722,25 +722,22 @@ class SkinConditionManager {
     }
 
     // Extract monthly skin condition
-    if (!content.containsKey('monthly')) {
-      result['monthly'] = List.filled(monthCnt, 0);
-    } else {
-      int targetYear = targetDate.year;
-      int targetMonth = targetDate.month;
-      for (int i = 0; i < monthCnt; i++) {
-        if (content['monthly'].containsKey("$targetYear-$targetMonth")) {
-          int val = content['monthly']["$targetYear-$targetMonth"][0];
-          int cnt = content['monthly']["$targetYear-$targetMonth"][1];
-          result['monthly']["$targetYear-$targetMonth"] = (val / cnt).ceil().toString();
-        } else {
-          result['monthly']["$targetYear-$targetMonth"] = '0';
-        }
 
-        targetMonth -= 1;
-        if (targetMonth == 0) {
-          targetYear -= 1;
-          targetMonth = 12;
-        }
+    int targetYear = targetDate.year;
+    int targetMonth = targetDate.month;
+    for (int i = 0; i < monthCnt; i++) {
+      if (content.containsKey('monthly') && content['monthly'].containsKey("$targetYear-$targetMonth")) {
+        int val = int.parse(content['monthly']["$targetYear-$targetMonth"][0].toString());
+        int cnt = int.parse(content['monthly']["$targetYear-$targetMonth"][1].toString());
+        result['monthly']["$targetYear-$targetMonth"] = (val / cnt).ceil().toString();
+      } else {
+        result['monthly']["$targetYear-$targetMonth"] = '0';
+      }
+
+      targetMonth -= 1;
+      if (targetMonth == 0) {
+        targetYear -= 1;
+        targetMonth = 12;
       }
     }
 
@@ -802,20 +799,16 @@ class StyleRecommendationManager {
         q: "name = '$styleFileName' and trashed = false and '$styleDirID' in parents",
       );
 
-      print("========== style directory ID: $styleDirID");
-
-      if (targetFileList.files!.isEmpty) { return {}; }  // return empty list if there's no target file
+      if (targetFileList.files!.isEmpty) { return {
+        'date': '0000-00-00 00:00',
+        'body': [],
+      }; }  // return empty list if there's no target file
 
       final targetFileID = targetFileList.files!.first.id;
-
-      print("========== target file ID: $targetFileID");
 
       // Send HTTP reauest to Google drive API v3
       http.Response req = await authenticateClient!.get(Uri.parse("https://www.googleapis.com/drive/v3/files/$targetFileID?alt=media"),);
       String targetContent = utf8.decode(req.bodyBytes);
-
-      print("========== http response: ${req.bodyBytes}");
-      print("========== decoded respopnse: $targetContent");
 
       // Parse response
       Map parsedTargetContent = jsonDecode(targetContent);
